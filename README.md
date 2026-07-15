@@ -122,6 +122,13 @@ include `linux/arm64`.
   worker concurrency never exceeds 2).
 - `HEARTBEAT_CHECKLIST_DISABLE` from the plan does not exist in v1.119.1 and was
   omitted.
+- **Worker restart requires recreate (upstream entrypoint bug).** Worker
+  containers must be restarted with `docker compose ... up -d --force-recreate`,
+  not plain `start`/`docker restart`. On a reused `/workspace`, the entrypoint's
+  "prepend to existing start-up.sh" branch leaves that file root-owned/unreadable
+  and the worker crash-loops. Durable state is in volumes, so recreate is lossless.
+  After a host/Docker reboot the workers auto-start on their old filesystem and
+  crash-loop until recreated — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
 - The dashboard is not part of this stack; run it on-demand (see
   [docs/OPERATIONS.md](docs/OPERATIONS.md)).
 

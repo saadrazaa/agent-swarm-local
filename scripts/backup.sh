@@ -54,7 +54,11 @@ restart_stack() {
   "${DC[@]}" up -d minio-init
   "${DC[@]}" up -d agent-fs
   "${DC[@]}" up -d api
-  "${DC[@]}" up -d lead worker-claude worker-codex
+  # Agents MUST be recreated, not merely started: /workspace is container-local
+  # and the upstream entrypoint's "prepend to existing start-up.sh" branch leaves
+  # that file root-owned/unreadable on a reused filesystem, crash-looping the
+  # worker. A fresh container takes the working "create new" path (mode 755).
+  "${DC[@]}" up -d --force-recreate lead worker-claude worker-codex
 }
 # Best-effort restart even if a later step fails, so we never leave the stack down.
 trap 'rm -f "$LOCK"; restart_stack || true' EXIT

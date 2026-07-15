@@ -32,14 +32,33 @@ docker stats            # watch memory; this VM is ~7.8 GiB and shared
 ## Stop / start (never destroys data)
 
 ```bash
-dc stop                 # stop all
-dc start                # start all
-dc stop lead worker-claude worker-codex   # pause only agents
+dc stop                                    # stop all (safe; keeps volumes)
+dc stop lead worker-claude worker-codex    # pause only agents
 ```
 
+**Restarting agents — always recreate, never plain `start`.** Worker containers
+are stateless; their durable state lives in the `swarm_worker_*`, `swarm_shared`,
+`swarm_logs`, and `swarm_codex_home` volumes. Their `/workspace` is container-local.
+A reused `/workspace` (from `dc start` / `docker restart` / a host reboot) makes the
+upstream entrypoint take its "prepend to existing start-up.sh" branch, which leaves
+that file root-owned and unreadable by the `worker` user — the container then
+crash-loops on the startup script. Bringing a **fresh** container up avoids it:
+
+```bash
+# Correct way to (re)start agents:
+dc up -d --force-recreate lead worker-claude worker-codex
+```
+
+Storage/API (`minio`, `agent-fs`, `api`) restart fine with plain `dc start`.
+
+**After a host / Docker Desktop reboot:** the workers auto-start with their old
+filesystem and will crash-loop. Recover with the `--force-recreate` command above
+(identity and memory are preserved — they live in the volumes). This is a known
+upstream-entrypoint limitation; see README.
+
 Do **not** use `dc down -v` — that deletes named volumes (all memory + identity).
-Plain `dc down` (no `-v`) removes containers but keeps volumes; bring-up recreates
-them.
+Plain `dc down` (no `-v`) removes containers but keeps volumes; the next `up`
+recreates them cleanly (also a valid restart).
 
 ## Concurrency model
 
