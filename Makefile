@@ -6,10 +6,12 @@ SHELL := /bin/bash
 DC := docker compose --env-file versions.env --env-file .env -p agent-swarm-local
 STORAGE := minio minio-init agent-fs api
 AGENTS := lead worker-claude worker-codex
+DASHBOARD_URL ?= https://app.agent-swarm.dev
+API_URL := http://127.0.0.1:3013
 
 .DEFAULT_GOAL := help
 .PHONY: help up start stop down restart restart-agents pause ps status logs \
-        verify health backup restore pull pins arch agents
+        verify health backup restore pull pins arch agents dashboard dashboard-link
 
 help: ## List available commands
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -51,6 +53,17 @@ verify: ## Health + agent-fs capabilities checks
 	@bash scripts/verify.sh
 
 health: verify ## Alias for 'verify'
+
+dashboard: ## Open the hosted dashboard (then paste API URL + key in Settings)
+	@echo ">> Opening $(DASHBOARD_URL)"
+	@echo "   In the gear/Settings menu, add a connection:"
+	@echo "     API URL: $(API_URL)"
+	@echo "     API Key: value of API_KEY in ./.env  (keep it secret)"
+	@command -v open >/dev/null 2>&1 && open "$(DASHBOARD_URL)" || echo "   Open $(DASHBOARD_URL) in your browser."
+
+dashboard-link: ## Print a one-click dashboard URL (WARNING: embeds your API key)
+	@key=$$(grep -E '^API_KEY=' .env | cut -d= -f2-); \
+	echo "$(DASHBOARD_URL)/?apiUrl=$(API_URL)&apiKey=$$key"
 
 agents: ## Show registered agents (id, role, harness, status)
 	@docker exec agent-swarm-local-api-1 sh -c 'curl -fsS -H "Authorization: Bearer $$API_KEY" http://localhost:3013/api/agents' \

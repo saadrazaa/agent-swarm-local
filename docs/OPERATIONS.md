@@ -93,12 +93,39 @@ this reason. Changing `TEMPLATE_ID` is not an upgrade mechanism.
   secret, `GITHUB_DISABLE=false`, and a restricted public HTTPS route to
   `/api/github/webhook` — never expose 3013 directly).
 
-## Dashboard (on-demand, not a service)
+## Dashboard (browser UI — not part of this stack)
 
-The UI is intentionally not an always-running container. Run it locally only when
-needed, pinned, pointed at `http://127.0.0.1:3013` with the operator `API_KEY`
-(treat that browser-local key as a secret). Document the exact pinned command here
-once chosen.
+The dashboard is a single-page app (`apps/ui` in the upstream repo) that runs in
+your browser and calls the API **directly**. There is no dashboard container. It
+fully manages the swarm: create tasks, configure integrations, chat, memory, MCP
+servers, schedules, workflows, API keys, budgets. The API's CORS echoes any origin
+with credentials, so either option below reaches `http://127.0.0.1:3013`.
+
+**Option A — hosted UI (zero setup):** `make dashboard` opens
+`https://app.agent-swarm.dev`. In the gear/Settings menu add a connection: API URL
+`http://127.0.0.1:3013`, API Key = `API_KEY` from `.env`. Or `make dashboard-link`
+prints a one-click `?apiUrl=&apiKey=` URL (that URL embeds your key — treat as
+secret; the app strips the params after loading).
+
+> Security note: the hosted page is served by desplega, so its JS runs with your
+> operator key in the browser. The key grants full control (RBAC is off). If you'd
+> rather not hand your key to a third-party-served page, use Option B.
+
+**Option B — run the UI locally (key never leaves your machine):** requires
+[bun](https://bun.sh) and a checkout of the upstream repo at the pinned tag:
+
+```bash
+git clone --depth 1 --branch v1.119.1 https://github.com/desplega-ai/agent-swarm /tmp/as-ui
+cd /tmp/as-ui && bun install && cd apps/ui && bun run dev   # serves http://localhost:5274
+# if the `portless` wrapper misbehaves: bunx vite --port 5274 --host 127.0.0.1
+```
+
+Then open `http://localhost:5274` and set the same connection. If you standardize
+on the local UI, set `APP_URL=http://127.0.0.1:5274` in `.env` (default is the
+hosted URL) so API-generated links (e.g. HITL approval requests) point there, and
+`make restart-agents` / recreate the API to apply.
+
+The key is an operator secret either way — it is not stored in Git or the stack.
 
 ## Health / verification
 

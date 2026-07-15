@@ -117,7 +117,10 @@ services:
       SECRETS_ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
       MCP_BASE_URL: http://127.0.0.1:3013
       PUBLIC_MCP_BASE_URL: http://127.0.0.1:3013
-      APP_URL: http://127.0.0.1:5274
+      # Where the browser dashboard lives; the API uses it only to build outbound
+      # links (e.g. HITL approval URLs). Default = hosted UI; override in .env with
+      # APP_URL=http://127.0.0.1:5274 if you run apps/ui locally instead.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SLACK_DISABLE: "true"
       GITHUB_DISABLE: "true"  # disables INBOUND webhooks only; worker GITHUB_TOKEN still works
       LINEAR_DISABLE: "true"
