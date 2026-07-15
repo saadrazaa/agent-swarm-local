@@ -1,0 +1,5 @@
+.env
+encryption_key
+backups/
+*.tar.gz
+*.sha256

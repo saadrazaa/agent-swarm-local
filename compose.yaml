@@ -1,0 +1,224 @@
+# Local Agent Swarm — trimmed single-user Apple Silicon deployment.
+# Image pins live in versions.env; secrets/identity live in .env (git-ignored).
+# Always run with BOTH env files:
+#   docker compose --env-file versions.env --env-file .env <cmd>
+#
+# Fixed project + volume names guarantee that moving this repo never creates a
+# second empty set of volumes. Only loopback ports are published.
+name: agent-swarm-local
+
+secrets:
+  encryption_key:
+    file: ./encryption_key
+
+networks:
+  default:
+    name: agent-swarm-local
+    # Normal bridge (NOT internal): providers, Git, templates, and the embedding
+    # model are outbound network downloads.
+
+volumes:
+  agent_fs_minio: { name: agent_fs_minio }
+  agent_fs_data: { name: agent_fs_data }
+  swarm_api_data: { name: swarm_api_data }
+  swarm_logs: { name: swarm_logs }
+  swarm_shared: { name: swarm_shared }
+  swarm_lead: { name: swarm_lead }
+  swarm_worker_claude: { name: swarm_worker_claude }
+  swarm_worker_codex: { name: swarm_worker_codex }
+  swarm_codex_home: { name: swarm_codex_home }
+
+services:
+  minio:
+    image: ${MINIO_IMAGE}
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:${MINIO_HOST_PORT}:9000" # console 9001 intentionally NOT published
+    volumes:
+      - agent_fs_minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  minio-init:
+    image: ${MINIO_MC_IMAGE}
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing local/agentfs
+        echo "minio-init: bucket 'agentfs' ready"
+    restart: "no"
+
+  agent-fs:
+    image: ${AGENT_FS_IMAGE}
+    depends_on:
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      AGENT_FS_HOME: /data
+      HOST: 0.0.0.0
+      SERVER_HOST: 0.0.0.0
+      PORT: "7433"
+      SERVER_PORT: "7433"
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: http://127.0.0.1:${MINIO_HOST_PORT}
+      S3_BUCKET: agentfs
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_REGION: us-east-1
+      S3_PROVIDER: minio
+      EMBEDDING_PROVIDER: local
+    ports:
+      - "127.0.0.1:7433:7433" # diagnostics only
+    volumes:
+      - agent_fs_data:/data
+    # Node-based health check reused verbatim from upstream v1.119.1: the agent-fs
+    # image ships node/bun but no curl/wget. The generous retry window covers the
+    # first-boot local embedding-model download before the service listens.
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:7433/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  api:
+    image: ${AGENT_SWARM_IMAGE}
+    depends_on:
+      agent-fs:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      RBAC_ENABLED: "false"
+      AGENT_FS_API_URL: http://agent-fs:7433
+      AGENT_FS_REGISTER_EMAIL: swarm-admin@agent-fs.local
+      # API registers its own agent-fs identity and stores it encrypted; do NOT
+      # set API_AGENT_FS_API_KEY, and never hand that key to workers.
+      SECRETS_ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
+      MCP_BASE_URL: http://127.0.0.1:3013
+      PUBLIC_MCP_BASE_URL: http://127.0.0.1:3013
+      APP_URL: http://127.0.0.1:5274
+      SLACK_DISABLE: "true"
+      GITHUB_DISABLE: "true"  # disables INBOUND webhooks only; worker GITHUB_TOKEN still works
+      LINEAR_DISABLE: "true"
+      JIRA_DISABLE: "true"
+      ANONYMIZED_TELEMETRY: "false"
+      # NOTE: the plan listed HEARTBEAT_CHECKLIST_DISABLE, but no such variable
+      # exists in v1.119.1 (verified against source) — omitted deliberately.
+    ports:
+      - "127.0.0.1:3013:3013"
+    volumes:
+      - swarm_api_data:/app/data # NOT /app — the DB lives under /app/data; /app/migrations must stay image-owned
+    secrets:
+      - encryption_key
+    # The API image ships curl AND wget (unlike agent-fs); reuse upstream's probe.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3013/health || wget -q --spider http://localhost:3013/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  lead:
+    image: ${AGENT_SWARM_WORKER_IMAGE}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      MCP_BASE_URL: http://api:3013
+      AGENT_FS_API_URL: http://agent-fs:7433
+      MAX_CONCURRENT_TASKS: "1"
+      YOLO: "false"
+      ANONYMIZED_TELEMETRY: "false"
+      AGENT_ID: ${LEAD_AGENT_ID}
+      AGENT_NAME: Lead
+      AGENT_ROLE: lead
+      TEMPLATE_ID: official/lead
+      HARNESS_PROVIDER: claude
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    volumes:
+      - swarm_logs:/logs
+      - swarm_shared:/workspace/shared
+      - swarm_lead:/workspace/personal
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  worker-claude:
+    image: ${AGENT_SWARM_WORKER_IMAGE}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      MCP_BASE_URL: http://api:3013
+      AGENT_FS_API_URL: http://agent-fs:7433
+      MAX_CONCURRENT_TASKS: "1"  # official/coder advertises maxTasks:3 — cap explicitly
+      YOLO: "false"
+      ANONYMIZED_TELEMETRY: "false"
+      AGENT_ID: ${CLAUDE_WORKER_AGENT_ID}
+      AGENT_NAME: Claude Coder
+      AGENT_ROLE: worker
+      TEMPLATE_ID: official/coder
+      HARNESS_PROVIDER: claude
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GITHUB_TOKEN: ${GITHUB_WORKER_TOKEN}
+      GITHUB_EMAIL: ${GITHUB_EMAIL}
+      GITHUB_NAME: ${GITHUB_NAME}
+    volumes:
+      - swarm_logs:/logs
+      - swarm_shared:/workspace/shared
+      - swarm_worker_claude:/workspace/personal
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  worker-codex:
+    image: ${AGENT_SWARM_WORKER_IMAGE}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      MCP_BASE_URL: http://api:3013
+      AGENT_FS_API_URL: http://agent-fs:7433
+      MAX_CONCURRENT_TASKS: "1"  # official/coder advertises maxTasks:3 — cap explicitly
+      YOLO: "false"
+      ANONYMIZED_TELEMETRY: "false"
+      AGENT_ID: ${CODEX_WORKER_AGENT_ID}
+      AGENT_NAME: Codex Coder
+      AGENT_ROLE: worker
+      TEMPLATE_ID: official/coder
+      HARNESS_PROVIDER: codex
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GITHUB_TOKEN: ${GITHUB_WORKER_TOKEN}
+      GITHUB_EMAIL: ${GITHUB_EMAIL}
+      GITHUB_NAME: ${GITHUB_NAME}
+    volumes:
+      - swarm_logs:/logs
+      - swarm_shared:/workspace/shared
+      - swarm_worker_codex:/workspace/personal
+      - swarm_codex_home:/home/worker/.codex
+    restart: unless-stopped
+    stop_grace_period: 60s
