@@ -125,6 +125,6 @@ log "checksums written and archives verified listable"
 trap 'rm -f "$LOCK"' EXIT
 restart_stack
 log "running verify.sh"
-"$REPO_DIR/scripts/verify.sh" || log "WARNING: verify.sh reported problems — inspect before trusting this backup"
+bash "$REPO_DIR/scripts/verify.sh" || log "WARNING: verify.sh reported problems — inspect before trusting this backup"
 
 log "DONE. Move $DEST/*.SENSITIVE to an encrypted off-device store, then delete the plaintext copies here."

@@ -111,12 +111,13 @@ for vol in swarm_api_data agent_fs_data; do
         found=1; echo "  $f: $(sqlite3 "$f" "PRAGMA integrity_check;" 2>&1 | head -1)"
       fi
     done
-    [ "$found" = 0 ] && echo "  no SQLite DB files found in '"$vol"'"
-  ' || log "WARNING: integrity check failed for $vol"
+    if [ "$found" = 0 ]; then echo "  no SQLite DB files found in '"$vol"'"; fi
+    exit 0
+  ' || log "WARNING: integrity check could not run for $vol"
 done
 
 # 9. Full verification.
 log "running verify.sh"
-"$REPO_DIR/scripts/verify.sh" || log "WARNING: verify.sh reported problems after restore"
+bash "$REPO_DIR/scripts/verify.sh" || log "WARNING: verify.sh reported problems after restore"
 
 log "DONE. Emergency snapshot retained at $EMERG"
