@@ -158,7 +158,11 @@ services:
       AGENT_ROLE: lead
       TEMPLATE_ID: official/lead
       HARNESS_PROVIDER: claude
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Claude auth: set EXACTLY ONE in .env — an Anthropic API key
+      # (ANTHROPIC_API_KEY, sk-ant-api…, API billing) OR a Claude Code OAuth
+      # token (CLAUDE_CODE_OAUTH_TOKEN, sk-ant-oat…, subscription quota).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
     volumes:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
@@ -183,7 +187,11 @@ services:
       AGENT_ROLE: worker
       TEMPLATE_ID: official/coder
       HARNESS_PROVIDER: claude
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Claude auth: set EXACTLY ONE in .env — an Anthropic API key
+      # (ANTHROPIC_API_KEY, sk-ant-api…, API billing) OR a Claude Code OAuth
+      # token (CLAUDE_CODE_OAUTH_TOKEN, sk-ant-oat…, subscription quota).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
       GITHUB_TOKEN: ${GITHUB_WORKER_TOKEN}
       GITHUB_EMAIL: ${GITHUB_EMAIL}
       GITHUB_NAME: ${GITHUB_NAME}
