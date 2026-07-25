@@ -198,10 +198,18 @@ services:
       GITHUB_TOKEN: ${GITHUB_WORKER_TOKEN}
       GITHUB_EMAIL: ${GITHUB_EMAIL}
       GITHUB_NAME: ${GITHUB_NAME}
+      # Read-only Binance access for the portfolio advisor. Env-var auth requires
+      # BOTH vars; the secret may be a path to an Ed25519 PEM. Container egress
+      # uses the host's IP, so any IP restriction on the key still holds.
+      BINANCE_API_KEY: ${BINANCE_RO_API_KEY}
+      BINANCE_SECRET_KEY: /run/secrets-binance/ro-ed25519.pem
+      BINANCE_API_ENV: prod
+      MODEL_TIER_MAP: '{"smol":"haiku","regular":"sonnet","smart":"sonnet","ultra":"opus"}'
     volumes:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
       - swarm_worker_claude:/workspace/personal
+      - ${HOME}/.binance/keys/ro-ed25519.pem:/run/secrets-binance/ro-ed25519.pem:ro
     restart: unless-stopped
     stop_grace_period: 60s
 
