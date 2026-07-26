@@ -23,10 +23,11 @@ volumes:
   swarm_api_data: { name: swarm_api_data }
   swarm_logs: { name: swarm_logs }
   swarm_shared: { name: swarm_shared }
-  swarm_lead: { name: swarm_lead }
-  swarm_worker_claude: { name: swarm_worker_claude }
-  swarm_worker_codex: { name: swarm_worker_codex }
-  swarm_codex_home: { name: swarm_codex_home }
+  swarm_tars: { name: swarm_tars }
+  swarm_chase: { name: swarm_chase }
+  swarm_rocky: { name: swarm_rocky }
+  swarm_rocky_codex: { name: swarm_rocky_codex }
+  swarm_einstein: { name: swarm_einstein }
 
 services:
   minio:
@@ -144,7 +145,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 60s
 
-  lead:
+  tars:
     image: ${AGENT_SWARM_WORKER_IMAGE}
     depends_on:
       api:
@@ -157,7 +158,7 @@ services:
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${LEAD_AGENT_ID}
-      AGENT_NAME: Lead
+      AGENT_NAME: TARS
       AGENT_ROLE: lead
       TEMPLATE_ID: official/lead
       HARNESS_PROVIDER: claude
@@ -169,11 +170,11 @@ services:
     volumes:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
-      - swarm_lead:/workspace/personal
+      - swarm_tars:/workspace/personal
     restart: unless-stopped
     stop_grace_period: 60s
 
-  worker-claude:
+  chase:
     image: ${AGENT_SWARM_WORKER_IMAGE}
     depends_on:
       api:
@@ -186,34 +187,21 @@ services:
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${CLAUDE_WORKER_AGENT_ID}
-      AGENT_NAME: Claude Coder
+      AGENT_NAME: CHASE
       AGENT_ROLE: worker
       TEMPLATE_ID: official/coder
       HARNESS_PROVIDER: claude
-      # Claude auth: set EXACTLY ONE in .env — an Anthropic API key
-      # (ANTHROPIC_API_KEY, sk-ant-api…, API billing) OR a Claude Code OAuth
-      # token (CLAUDE_CODE_OAUTH_TOKEN, sk-ant-oat…, subscription quota).
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
-      GITHUB_TOKEN: ${GITHUB_WORKER_TOKEN}
-      GITHUB_EMAIL: ${GITHUB_EMAIL}
-      GITHUB_NAME: ${GITHUB_NAME}
-      # Read-only Binance access for the portfolio advisor. Env-var auth requires
-      # BOTH vars; the secret may be a path to an Ed25519 PEM. Container egress
-      # uses the host's IP, so any IP restriction on the key still holds.
-      BINANCE_API_KEY: ${BINANCE_RO_API_KEY}
-      BINANCE_SECRET_KEY: /run/secrets-binance/ro-ed25519.pem
-      BINANCE_API_ENV: prod
-      MODEL_TIER_MAP: '{"smol":"haiku","regular":"sonnet","smart":"sonnet","ultra":"opus"}'
     volumes:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
-      - swarm_worker_claude:/workspace/personal
+      - swarm_chase:/workspace/personal
       - ${HOME}/.binance/keys/ro-ed25519.pem:/run/secrets-binance/ro-ed25519.pem:ro
     restart: unless-stopped
     stop_grace_period: 60s
 
-  worker-codex:
+  rocky:
     image: ${AGENT_SWARM_WORKER_IMAGE}
     depends_on:
       api:
@@ -226,18 +214,41 @@ services:
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${CODEX_WORKER_AGENT_ID}
-      AGENT_NAME: Codex Coder
+      AGENT_NAME: ROCKY
       AGENT_ROLE: worker
       TEMPLATE_ID: official/coder
       HARNESS_PROVIDER: codex
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      GITHUB_TOKEN: ${GITHUB_WORKER_TOKEN}
-      GITHUB_EMAIL: ${GITHUB_EMAIL}
-      GITHUB_NAME: ${GITHUB_NAME}
     volumes:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
-      - swarm_worker_codex:/workspace/personal
-      - swarm_codex_home:/home/worker/.codex
+      - swarm_rocky:/workspace/personal
+      - swarm_rocky_codex:/home/worker/.codex
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  einstein:
+    image: ${AGENT_SWARM_WORKER_IMAGE}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      MCP_BASE_URL: http://api:3013
+      AGENT_FS_API_URL: http://agent-fs:7433
+      MAX_CONCURRENT_TASKS: "1"
+      YOLO: "false"
+      ANONYMIZED_TELEMETRY: "false"
+      AGENT_ID: ${RESEARCHER_AGENT_ID}
+      AGENT_NAME: EINSTEIN
+      AGENT_ROLE: worker
+      TEMPLATE_ID: official/researcher
+      HARNESS_PROVIDER: claude
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+    volumes:
+      - swarm_logs:/logs
+      - swarm_shared:/workspace/shared
+      - swarm_einstein:/workspace/personal
     restart: unless-stopped
     stop_grace_period: 60s

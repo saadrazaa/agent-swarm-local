@@ -5,13 +5,13 @@
 SHELL := /bin/bash
 DC := docker compose --env-file versions.env --env-file .env -p agent-swarm-local
 STORAGE := minio minio-init agent-fs api
-AGENTS := lead worker-claude worker-codex
+AGENTS := tars chase rocky einstein
 DASHBOARD_URL ?= https://app.agent-swarm.dev
 API_URL := http://127.0.0.1:3013
 
 .DEFAULT_GOAL := help
 .PHONY: help up start stop down restart restart-agents pause ps status logs \
-        verify health backup restore pull pins arch agents dashboard dashboard-link
+        verify health backup restore pull pins arch agents set-model dashboard dashboard-link
 
 help: ## List available commands
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -68,6 +68,10 @@ dashboard-link: ## Print a one-click dashboard URL (WARNING: embeds your API key
 agents: ## Show registered agents (id, role, harness, status)
 	@docker exec agent-swarm-local-api-1 sh -c 'curl -fsS -H "Authorization: Bearer $$API_KEY" http://localhost:3013/api/agents' \
 		| python3 -c "import sys,json;[print(f\"  {a['name']:13} {a['id']} {'lead' if a['isLead'] else 'worker'}/{a['harnessProvider']} status={a['status']}\") for a in json.load(sys.stdin)['agents']]"
+
+set-model: ## Set an agent's model live (no restart) — usage: make set-model AGENT=<name|id> MODEL=<model-id>
+	@test -n "$(AGENT)" -a -n "$(MODEL)" || { echo "usage: make set-model AGENT=<name|id> MODEL=<model-id>"; exit 1; }
+	@bash scripts/set-model.sh "$(AGENT)" "$(MODEL)"
 
 backup: ## Consistent offline backup (stops stack, archives, restarts, verifies)
 	@bash scripts/backup.sh
