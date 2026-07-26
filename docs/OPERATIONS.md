@@ -127,6 +127,29 @@ hosted URL) so API-generated links (e.g. HITL approval requests) point there, an
 
 The key is an operator secret either way — it is not stored in Git or the stack.
 
+## Browsing agent-fs memory (live viewer)
+
+`https://live.agent-fs.dev` is a stateless browser UI for inspecting an agent-fs
+deployment. **Connect existing key** → Endpoint URL `http://127.0.0.1:7433`, API
+Key = `AGENT_FS_VIEWER_KEY` from `.env`. `make agent-fs-viewer` prints both.
+
+Why a dedicated key: agent-fs is multi-tenant, and every service (API, each
+agent) auto-registers a private identity whose key is generated server-side and
+kept encrypted in the API — none of them is usable for browsing. So we provision
+a separate human **viewer** identity. `AGENT_FS_VIEWER_KEY` is a permanent secret
+(bootstrap-generated, vault it like `API_KEY`), and the `agent-fs-viewer-init`
+service (`scripts/agent-fs-viewer-init.mjs`) seeds it into agent-fs and grants it
+access to every org/drive on each `up`. It only writes `org_members`/
+`drive_members` rows — agent-fs exposes no invite API reachable without an
+org-admin key — and nothing depends on it, so a failure never blocks the swarm.
+
+- **New agent orgs** (agents get a personal org the first time they use memory)
+  are picked up on the next `up`, or immediately via `make agent-fs-viewer`.
+- **On upgrade:** if a new agent-fs version changes the identity schema, only
+  `scripts/agent-fs-viewer-init.mjs` needs updating; the swarm is unaffected.
+- Same third-party-trust caveat as the dashboard: the viewer's JS is
+  desplega-served and runs with your viewer key in the browser.
+
 ## Health / verification
 
 `./scripts/verify.sh` (read-only) checks infra health, image arch = arm64,

@@ -11,7 +11,8 @@ API_URL := http://127.0.0.1:3013
 
 .DEFAULT_GOAL := help
 .PHONY: help up start stop down restart restart-agents pause ps status logs \
-        verify health backup restore pull pins arch agents set-model dashboard dashboard-link
+        verify health backup restore pull pins arch agents set-model dashboard dashboard-link \
+        agent-fs-viewer
 
 help: ## List available commands
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -20,6 +21,7 @@ help: ## List available commands
 up: ## Start the full stack (storage+API, then recreate agents)
 	$(DC) up -d $(STORAGE)
 	$(DC) up -d --force-recreate $(AGENTS)
+	$(DC) up -d --force-recreate agent-fs-viewer-init
 	@echo ">> stack up — run 'make verify'"
 
 start: up ## Alias for 'up'
@@ -64,6 +66,13 @@ dashboard: ## Open the hosted dashboard (then paste API URL + key in Settings)
 dashboard-link: ## Print a one-click dashboard URL (WARNING: embeds your API key)
 	@key=$$(grep -E '^API_KEY=' .env | cut -d= -f2-); \
 	echo "$(DASHBOARD_URL)/?apiUrl=$(API_URL)&apiKey=$$key"
+
+agent-fs-viewer: ## Refresh live-viewer access + print the agent-fs browse URL/key
+	$(DC) up -d --force-recreate agent-fs-viewer-init
+	@key=$$(grep -E '^AGENT_FS_VIEWER_KEY=' .env | cut -d= -f2-); \
+	echo ">> Browse agent-fs at https://live.agent-fs.dev  (Connect existing key)"; \
+	echo "   Endpoint URL: http://127.0.0.1:7433"; \
+	echo "   API Key:      $$key   (AGENT_FS_VIEWER_KEY in ./.env)"
 
 agents: ## Show registered agents (id, role, harness, status)
 	@docker exec agent-swarm-local-api-1 sh -c 'curl -fsS -H "Authorization: Bearer $$API_KEY" http://localhost:3013/api/agents' \

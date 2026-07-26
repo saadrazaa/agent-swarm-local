@@ -87,6 +87,10 @@ services:
       S3_REGION: us-east-1
       S3_PROVIDER: minio
       EMBEDDING_PROVIDER: local
+      # Stamps a browser-viewable "live" link onto every file response
+      # (<AGENT_FS_APP_URL>/file/~/<orgId>/<driveId>/<path>) and is the hosted
+      # viewer that renders them. https://live.agent-fs.dev is a stateless SPA.
+      AGENT_FS_APP_URL: https://live.agent-fs.dev
     ports:
       - "127.0.0.1:7433:7433" # diagnostics only
     volumes:
@@ -102,6 +106,28 @@ services:
       start_period: 10s
     restart: unless-stopped
     stop_grace_period: 60s
+
+  # Makes agent-fs browsable by you. agent-fs is multi-tenant and every service
+  # auto-registers a private identity whose key is generated server-side and
+  # kept encrypted in the API — so out of the box no key can browse the data in
+  # the live viewer. This one-shot reconciles a human "viewer" identity whose
+  # key is AGENT_FS_VIEWER_KEY (in .env) and adds it to every org/drive. It only
+  # writes org_members/drive_members rows (agent-fs has no invite API reachable
+  # without an org-admin key). Idempotent; nothing depends on it, so a failure
+  # never blocks the swarm. Re-run after agents create new orgs: make agent-fs-viewer
+  agent-fs-viewer-init:
+    image: ${AGENT_FS_IMAGE}
+    depends_on:
+      agent-fs:
+        condition: service_healthy
+    environment:
+      AGENT_FS_VIEWER_KEY: ${AGENT_FS_VIEWER_KEY:-}
+      AGENT_FS_VIEWER_EMAIL: ${AGENT_FS_VIEWER_EMAIL:-viewer@local}
+    entrypoint: ["bun", "/init.mjs"]
+    volumes:
+      - agent_fs_data:/data
+      - ./scripts/agent-fs-viewer-init.mjs:/init.mjs:ro
+    restart: "no"
 
   api:
     image: ${AGENT_SWARM_IMAGE}
@@ -197,7 +223,6 @@ services:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
       - swarm_chase:/workspace/personal
-      - ${HOME}/.binance/keys/ro-ed25519.pem:/run/secrets-binance/ro-ed25519.pem:ro
     restart: unless-stopped
     stop_grace_period: 60s
 
