@@ -171,28 +171,6 @@ services:
     restart: unless-stopped
     stop_grace_period: 60s
 
-  # Reconciles repo-declared skills + packages into the swarm so every worker
-  # acquires them on boot (skills via the skill registry; packages via the global
-  # setup script). Source of truth is ./skills and ./packages; sync is upsert-only
-  # and never prunes. Idempotent; nothing depends on it, so a failure never blocks
-  # the swarm. Re-run scoped: make swarm-sync | skills-sync | packages-sync.
-  # See docs/superpowers/specs/2026-07-27-swarm-skill-and-package-sync-design.md.
-  swarm-config-init:
-    image: ${AGENT_SWARM_IMAGE} # ships bun; no extra image to pull
-    depends_on:
-      api:
-        condition: service_healthy
-    environment:
-      API_KEY: ${API_KEY}
-      SWARM_API_URL: http://api:3013
-      SYNC: ${SYNC:-all} # all | skills | packages
-    entrypoint: ["bun", "/swarm-sync.mjs"]
-    volumes:
-      - ./scripts/swarm-sync.mjs:/swarm-sync.mjs:ro
-      - ./skills:/skills:ro
-      - ./packages:/packages:ro
-    restart: "no"
-
   tars:
     image: ${AGENT_SWARM_WORKER_IMAGE}
     depends_on:
