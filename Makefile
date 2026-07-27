@@ -12,16 +12,17 @@ API_URL := http://127.0.0.1:3013
 .DEFAULT_GOAL := help
 .PHONY: help up start stop down restart restart-agents pause ps status logs \
         verify health backup restore pull pins arch agents set-model dashboard dashboard-link \
-        agent-fs-viewer
+        agent-fs-viewer swarm-sync skills-sync packages-sync
 
 help: ## List available commands
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
 		| awk 'BEGIN{FS=":.*?## "}{printf "  make %-16s %s\n", $$1, $$2}'
 
-up: ## Start the full stack (storage+API, then recreate agents)
+up: ## Start the full stack (storage+API, sync config, then recreate agents LAST)
 	$(DC) up -d $(STORAGE)
-	$(DC) up -d --force-recreate $(AGENTS)
 	$(DC) up -d --force-recreate agent-fs-viewer-init
+	$(DC) up -d --force-recreate swarm-config-init
+	$(DC) up -d --force-recreate $(AGENTS)
 	@echo ">> stack up — run 'make verify'"
 
 start: up ## Alias for 'up'
@@ -73,6 +74,18 @@ agent-fs-viewer: ## Refresh live-viewer access + print the agent-fs browse URL/k
 	echo ">> Browse agent-fs at https://live.agent-fs.dev  (Connect existing key)"; \
 	echo "   Endpoint URL: http://127.0.0.1:7433"; \
 	echo "   API Key:      $$key   (AGENT_FS_VIEWER_KEY in ./.env)"
+
+swarm-sync: ## Sync repo skills + packages into the swarm (upsert-only, no prune)
+	SYNC=all $(DC) up -d --force-recreate swarm-config-init
+	@echo ">> synced — see 'make logs SERVICE=swarm-config-init'. Applies to agents on next boot (make restart-agents)."
+
+skills-sync: ## Sync only skills/ into the swarm
+	SYNC=skills $(DC) up -d --force-recreate swarm-config-init
+	@echo ">> skills synced — 'make restart-agents' to apply now."
+
+packages-sync: ## Sync only packages/global-setup.sh into the swarm's global setup script
+	SYNC=packages $(DC) up -d --force-recreate swarm-config-init
+	@echo ">> packages synced — 'make restart-agents' to apply now."
 
 agents: ## Show registered agents (id, role, harness, status)
 	@docker exec agent-swarm-local-api-1 sh -c 'curl -fsS -H "Authorization: Bearer $$API_KEY" http://localhost:3013/api/agents' \

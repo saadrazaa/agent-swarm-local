@@ -150,6 +150,40 @@ org-admin key — and nothing depends on it, so a failure never blocks the swarm
 - Same third-party-trust caveat as the dashboard: the viewer's JS is
   desplega-served and runs with your viewer key in the browser.
 
+## Custom skills and packages (synced from this repo)
+
+Skills every agent should have, and packages every worker needs, are declared in
+this repo and synced into the swarm — the swarm then delivers them to each worker
+automatically on boot. Source of truth:
+
+- [`skills/<name>/`](../skills/README.md) — one dir per skill (`SKILL.md`, plus any
+  scripts to bundle). Synced to the swarm skill registry as all-agents skills.
+- [`packages/global-setup.sh`](../packages/README.md) — one idempotent, root-run
+  install script. Synced to the swarm's global setup script; every worker runs it
+  as root on boot.
+
+The `swarm-config-init` service (`scripts/swarm-sync.mjs`) reconciles both on every
+`up`, mirroring `agent-fs-viewer-init`: idempotent, upsert-only (**never prunes** —
+UI / out-of-the-box skills are untouched; it aborts only on a **name conflict**),
+and nothing depends on it, so a failure never blocks the swarm.
+
+```bash
+make swarm-sync         # sync skills + packages   (or make up, which runs it)
+make skills-sync        # skills only
+make packages-sync      # packages only
+make restart-agents     # apply to running agents now (else applied on next boot)
+make logs SERVICE=swarm-config-init   # see what was synced
+```
+
+- **Skills** land at `~/.claude/skills/<name>/` (and the codex/pi skill dirs) on
+  each agent; complex skills carry their whole directory (scripts included), so
+  agents run them instead of re-deriving logic (saves tokens).
+- **Packages**: `global-setup.sh` re-runs each boot — keep it a fast no-op when
+  everything is present. A failed step warns but does not brick boot
+  (`STARTUP_SCRIPT_STRICT=false`).
+- **No secrets** in `skills/` or `packages/` — they are committed. Reference
+  credentials (e.g. the Binance read-only key) by name only.
+
 ## Health / verification
 
 `./scripts/verify.sh` (read-only) checks infra health, image arch = arm64,
