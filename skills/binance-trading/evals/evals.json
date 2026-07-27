@@ -1,0 +1,43 @@
+{
+  "skill_name": "binance-trading",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Give me a market brief this morning across the things I actually watch: BTC, ETH, NVDA, gold, and the OpenAI pre-IPO perp. I don't just want prices - tell me what the positioning and funding are saying and whether anything looks crowded or stretched.",
+      "expected_output": "A cross-asset table (price, 24h%, funding, OI, positioning) spanning crypto + a US equity + a commodity + the pre-IPO perp, with an interpretation of positioning/funding and a note that TradFi/pre-IPO funding is only meaningful when the underlying market is open.",
+      "files": [],
+      "expectations": [
+        "Reports live prices and 24h % change for all five requested instruments (BTCUSDT, ETHUSDT, NVDAUSDT, XAUUSDT, OPENAIUSDT)",
+        "Includes positioning/sentiment data beyond price - at least funding rate and open interest",
+        "Interprets the data (crowded/stretched/divergence) rather than only dumping numbers",
+        "Correctly handles NVDA/gold/OpenAI as non-crypto instruments and notes the TradFi trading-session caveat for funding",
+        "Correctly identifies OPENAIUSDT as a pre-IPO / premarket perp (synthetic private-company valuation), not a normal token"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Pull my full Binance account - every wallet where I have money, my open futures positions with the risk on each, and tell me where my concentration and liquidation risk actually is so I can decide whether to trim anything.",
+      "expected_output": "A consolidated portfolio: NAV rollup across wallets (Spot, Funding, USDS-M Futures at minimum), futures positions with entry/mark/uPnL/leverage/liquidation-distance, and a risk read covering concentration by position/asset-class and which position is nearest liquidation.",
+      "files": [],
+      "expectations": [
+        "Reads and reports open USDⓈ-M futures positions (does NOT claim futures positions are unreadable / out of scope)",
+        "Reports the Funding wallet balance (~67 USDT), not just Spot",
+        "Includes per-position risk metrics: at least leverage or liquidation price/distance, plus unrealized PnL",
+        "Gives a consolidated NAV across multiple wallet types",
+        "Provides an allocation/risk read (concentration and/or nearest-to-liquidation), not just a balance dump"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Someone told me Binance has prediction markets now. Is that true? If there's anything like that I can get exposure to, show me what's available and where it's trading right now.",
+      "expected_output": "An honest verdict that Binance has no native prediction/event-contract market, pointing to the pre-IPO PREMARKET perps (OPENAI, ANTHROPIC) as the closest analogue with live pricing, and optionally options as a secondary forward-looking surface.",
+      "files": [],
+      "expectations": [
+        "States clearly that Binance has NO native prediction-market / event-contract product in the CLI",
+        "Identifies the pre-IPO / PREMARKET perps (OPENAIUSDT and/or ANTHROPICUSDT) as the closest analogue",
+        "Shows live pricing for at least one pre-IPO perp",
+        "Explains these are synthetic private-company valuation perps (no real shares), not a yes/no event market"
+      ]
+    }
+  ]
+}
