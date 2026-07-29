@@ -154,8 +154,15 @@ services:
       LINEAR_DISABLE: "true"
       JIRA_DISABLE: "true"
       ANONYMIZED_TELEMETRY: "false"
-      # NOTE: the plan listed HEARTBEAT_CHECKLIST_DISABLE, but no such variable
-      # exists in v1.119.1 (verified against source) — omitted deliberately.
+      # NOTE: HEARTBEAT_CHECKLIST_DISABLE exists but is left unset deliberately —
+      # it's parsed as Boolean(env), so any non-empty value (even "false") disables
+      # the checklist.
+      # >=1.121.0 gates MCP tool groups by CAPABILITIES with a new default that
+      # drops `services` (and leaves swarm-x/agentmail/kapso/prompt-templates
+      # off). Explicit list = new default + services, preserving the v1.119.1
+      # tool surface this stack actually used. Gates MCP tool registration
+      # only; SLACK_DISABLE etc. still control integrations.
+      CAPABILITIES: "core,task-pool,scripts,config,mcp,profiles,scheduling,memory,workflows,pages,metrics,kv,slack,tracker,skills,repo,services"
     ports:
       - "127.0.0.1:3013:3013"
     volumes:
@@ -181,7 +188,7 @@ services:
       API_KEY: ${API_KEY}
       MCP_BASE_URL: http://api:3013
       AGENT_FS_API_URL: http://agent-fs:7433
-      MAX_CONCURRENT_TASKS: "1"
+      MAX_CONCURRENT_TASKS: "3"
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${LEAD_AGENT_ID}
