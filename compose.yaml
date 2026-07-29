@@ -139,6 +139,7 @@ services:
       RBAC_ENABLED: "false"
       AGENT_FS_API_URL: http://agent-fs:7433
       AGENT_FS_REGISTER_EMAIL: swarm-admin@agent-fs.local
+      TRUST_BODY_REQUESTED_BY_USER_ID: "true"
       # API registers its own agent-fs identity and stores it encrypted; do NOT
       # set API_AGENT_FS_API_KEY, and never hand that key to workers.
       SECRETS_ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
