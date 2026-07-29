@@ -17,10 +17,14 @@ the backup tooling changes.
 - `encryption_key` — without the exact key, `swarm_api_data` secrets are unrecoverable
 - `.env`, `compose.yaml`, `versions.env`
 
-Also archived: `swarm_shared`, `swarm_lead`, `swarm_worker_claude`,
-`swarm_worker_codex`, `swarm_codex_home` (session/uncommitted artifacts). Logs are
-optional. `swarm_api_data` + `agent_fs_data` + `agent_fs_minio` must be restored as
-**one consistent set** — never mix an old DB with a newer MinIO snapshot.
+Also archived: `swarm_shared` plus the per-agent volumes `swarm_tars`,
+`swarm_chase`, `swarm_rocky`, `swarm_rocky_codex`, and `swarm_einstein`
+(session/uncommitted artifacts). Logs are optional. `swarm_api_data` +
+`agent_fs_data` + `agent_fs_minio` must be restored as **one consistent set** —
+never mix an old DB with a newer MinIO snapshot.
+
+The authoritative volume list lives in `scripts/backup.sh` and
+`scripts/restore.sh`. If you add an agent service, add its volume to both.
 
 ## Backup
 
@@ -28,6 +32,8 @@ optional. `swarm_api_data` + `agent_fs_data` + `agent_fs_minio` must be restored
 ./scripts/backup.sh                 # -> backups/<UTC-timestamp>/
 ./scripts/backup.sh /path/to/dest   # explicit destination
 ```
+
+Or `make backup` / `make restore BACKUP=backups/<timestamp>`.
 
 `backup.sh`: single-flight lock; pauses agents (API stays up to record pause), then
 stops API → agent-fs → MinIO; tars each volume read-only; copies config + version

@@ -1,86 +1,170 @@
 # agent-swarm-local
 
-Trimmed, single-user, loopback-only Docker deployment of
-[desplega-ai/agent-swarm](https://github.com/desplega-ai/agent-swarm) pinned at
-**v1.121.1** with **agent-fs 0.9.0**, for Apple Silicon. Persistent agent memory
-is provided by agent-fs backed by a local MinIO.
+A trimmed, single-operator, loopback-only Docker Compose deployment of
+[desplega-ai/agent-swarm](https://github.com/desplega-ai/agent-swarm), pinned at
+**v1.121.1** with **agent-fs 0.9.0**. Persistent agent memory is provided by
+agent-fs backed by a local MinIO. Everything runs on your host; nothing is
+exposed beyond `127.0.0.1`.
 
-This repository contains **only** Compose config, version pins, operational
-scripts, and docs. There is no upstream fork and no source modification — see
-[docs/UPGRADES.md](docs/UPGRADES.md) and the fork policy in the implementation
-plan. Consume upstream release images; customize via profiles/templates/skills/
-MCP/workflows/env, not by carrying source.
+> **Unofficial.** This is a community deployment configuration. It is not
+> affiliated with, endorsed by, or supported by desplega.ai. Agent Swarm,
+> agent-fs, and their images are upstream projects; this repo only pins and
+> configures them. For product bugs, go upstream.
+
+## What this is
+
+- A `compose.yaml` with fixed project and volume names, so moving the repo never
+  silently creates a second empty set of volumes.
+- Image pins as `tag@sha256:<digest>` in `versions.env` — no `latest`, ever.
+- Operational scripts: bootstrap, verify, backup, restore, upgrade recon.
+- Docs for running, upgrading, and recovering the stack.
+
+## What this is not
+
+- **Not a fork.** There is no upstream source in this repo and no source
+  modification. It consumes upstream release images; customization happens
+  through profiles, templates, skills, MCP, workflows, and env — never by
+  carrying patches. See [docs/UPGRADES.md](docs/UPGRADES.md).
+- **Not multi-user.** `RBAC_ENABLED=false` and a single operator API key.
+- **Not internet-facing.** No reverse proxy, no TLS, no inbound webhooks. All
+  published ports bind loopback.
+- **Not production infrastructure.** No HA, no monitoring, no alerting. Backups
+  are a script you run.
 
 ## Architecture
 
 ```
-local API client / dashboard --> 127.0.0.1:3013 --> API (swarm_api_data:/app/data)
-                                                      |
-                                                      +-- agent-fs (agent_fs_data:/data)
-                                                              |
-                                                              +-- MinIO (agent_fs_minio:/data, S3)
-API-coordinated agents (outbound LLM + Git only):
-  lead (Claude) · worker-claude (Claude) · worker-codex (Codex)   -> shared workspace
+your browser / API client --> 127.0.0.1:3013 --> api (swarm_api_data:/app/data)
+                                                  |
+                                                  +-- agent-fs (agent_fs_data:/data)
+                                                        |
+                                                        +-- MinIO (agent_fs_minio:/data, S3)
+
+API-coordinated agents (outbound LLM + Git only), each with its own volume:
+  tars      lead        Claude   official/lead
+  chase     coder       Claude   official/coder
+  rocky     coder       Codex    official/coder
+  einstein  researcher  Claude   official/researcher
+                                        \--> shared workspace (swarm_shared)
 ```
 
-Six long-running containers + one-shot `minio-init`. Only the control plane and
-persistence run locally; LLM inference and Git are outbound calls.
+Seven long-running containers (`minio`, `agent-fs`, `api`, and the four agents)
+plus two one-shots (`minio-init`, `agent-fs-viewer-init`). Only the control plane
+and persistence run locally — LLM inference and Git are outbound calls.
+
+## Platform support
+
+Built and verified on **Apple Silicon (arm64) with Docker Desktop.** Every pinned
+digest is a multi-arch index, but **only `linux/arm64` is verified** — `amd64` is
+untested here and `scripts/verify.sh` actively fails if a running image is not
+arm64. It will likely work on an amd64 Linux host after relaxing that check, but
+nobody has tried; treat it as unsupported rather than broken.
 
 ## Prerequisites
 
-- Docker Desktop (Apple Silicon / arm64), ≥6 CPUs, ≥8 GB RAM (10 GB recommended
-  if two builds run at once — see the memory note below), ≥35–40 GB free disk.
-- `openssl`, `uuidgen`, `shellcheck`, `curl`, `gh` (for GitHub checks) on the host.
-- An **encrypted, off-device** destination for recovery copies of `.env` and
-  `encryption_key`, and for backups.
-
-### Host-specific deviations from the base plan
-
-- **MinIO host port is `9002`, not `9000`.** Port 9000 on this machine is already
-  taken by the `client-monorepo` dev stack's MinIO. The published S3 port is set
-  by `MINIO_HOST_PORT` in `.env` (default 9002); signed object URLs use it. If you
-  free 9000, set `MINIO_HOST_PORT=9000`. Ports 3013 (API) and 7433 (agent-fs) are
-  unchanged and were free.
-- **Memory pressure:** Docker's VM is ~7.8 GiB and the `client-monorepo` stack is
-  already running in it. Before Phase 2+ bring-up, either raise Docker to ≥10–12 GB
-  or stop `client-monorepo` while the swarm runs. Two coder builds + the embedding
-  model can otherwise thrash this VM.
-
-## Layout
-
-```
-compose.yaml        trimmed stack (fixed project + volume names, loopback ports)
-versions.env        image tag+digest pins (all arm64-verified)
-.env                secrets + permanent identity (git-ignored, mode 600)
-encryption_key      secrets-encryption key (git-ignored, mode 600, Compose secret)
-scripts/            bootstrap · verify · backup · restore · check-updates
-docs/               OPERATIONS · BACKUP-RESTORE · UPGRADES
-backups/            local staging only (git-ignored)
-```
+- **Docker Desktop** (or equivalent) with ≥6 CPUs, ≥8 GB RAM allocated to the VM,
+  and ≥35–40 GB free disk. If you run other heavy Compose stacks on the same
+  Docker VM, budget ≥10–12 GB or stop them while the swarm runs — two concurrent
+  agent builds plus the embedding model will thrash a smaller VM.
+- **Host tools:** `openssl`, `uuidgen`, `curl`, `python3`, `make`. Optional:
+  `gh` (upgrade recon), `shellcheck` (contributors).
+- **Three free loopback ports:** 3013 (API), 7433 (agent-fs diagnostics), and one
+  for MinIO's S3 API — `MINIO_HOST_PORT`, default **9002** so it does not collide
+  with another local MinIO on 9000. Set it to 9000 if that port is free.
+- **An encrypted, off-device destination** for recovery copies of `.env` and
+  `encryption_key`, and for backups. Losing `encryption_key` makes every secret
+  stored in the API database permanently unrecoverable.
+- **Provider credentials:** an Anthropic API key *or* a Claude Code OAuth token
+  (for the three Claude agents), and an OpenAI API key (for the Codex worker).
 
 ## Quick start
 
 ```bash
-# 1. Generate secrets + permanent identity (idempotent; never regenerates).
+# 1. Generate secrets + permanent identity. Idempotent: it never overwrites an
+#    existing .env or encryption_key, and backfills newly-added keys.
 ./scripts/bootstrap.sh
-# 2. Paste real provider credentials into .env:
-#    ANTHROPIC_API_KEY, OPENAI_API_KEY, GITHUB_WORKER_TOKEN, GITHUB_EMAIL, GITHUB_NAME
+
+# 2. Paste your provider credentials into the generated .env:
+#      ANTHROPIC_API_KEY *or* CLAUDE_CODE_OAUTH_TOKEN   (exactly one)
+#      OPENAI_API_KEY
+#    See .env.example for what every variable does.
+
 # 3. Store recovery copies of .env and encryption_key in an encrypted vault.
 
-# Always pass BOTH env files:
-docker compose --env-file versions.env --env-file .env up -d minio minio-init agent-fs api
-./scripts/verify.sh
-docker compose --env-file versions.env --env-file .env up -d lead worker-claude worker-codex
+# 4. Bring the stack up (storage + API first, then the agents).
+make up
+
+# 5. Confirm it's actually healthy.
+make verify
 ```
 
-Stop everything without destroying data:
+First boot takes a few minutes: agent-fs downloads a local embedding model before
+it starts listening, and its health check has a deliberately long retry window.
+
+Then connect a dashboard — `make dashboard` for the hosted UI, or run the UI
+locally so your key never leaves your machine. Both options and their tradeoffs
+are in [docs/OPERATIONS.md](docs/OPERATIONS.md#dashboard-browser-ui).
+
+Git/GitHub credentials for the agents are **not** in `.env` — set them in the
+swarm's own global config through the dashboard, which stores them encrypted.
+
+## Day-to-day operation
+
+Every Compose invocation must pass both env files and the fixed project name. The
+Makefile does that for you; run `make` to list targets.
+
+| Command | What it does |
+|---|---|
+| `make up` | Start storage + API, then recreate the agents |
+| `make verify` | Read-only health, arch, and agent-fs provider checks |
+| `make ps` / `make logs SERVICE=api` | Status / tail logs |
+| `make pause` | Stop only the agents; storage + API stay up |
+| `make stop` | Stop everything, keep containers and volumes |
+| `make down` | Remove containers, **keep** volumes (never uses `-v`) |
+| `make restart-agents` | Recreate just the agents — the fix for a crash-loop |
+| `make agents` | List registered agents with role, harness, and status |
+| `make set-model AGENT=<name> MODEL=<id>` | Change an agent's model live, no restart |
+| `make backup` / `make restore BACKUP=…` | Consistent offline backup / destructive restore |
+| `make pull` / `make pins` / `make arch` | Pull pinned images / show refs / show running arch |
+
+Raw Compose, if you need it:
 
 ```bash
-docker compose --env-file versions.env --env-file .env stop
+docker compose --env-file versions.env --env-file .env -p agent-swarm-local ps
 ```
 
-**Never** run `docker compose down -v` — it deletes the named volumes (all memory
-and identity). Backups/restores use explicit, checksum-verified volume ops instead.
+> **Never run `docker compose down -v`.** It deletes the named volumes — all agent
+> memory and identity. Plain `down` (no `-v`) is safe. Backups and restores use
+> explicit, checksum-verified volume operations instead.
+
+Details: [docs/OPERATIONS.md](docs/OPERATIONS.md) ·
+[docs/BACKUP-RESTORE.md](docs/BACKUP-RESTORE.md) ·
+[docs/UPGRADES.md](docs/UPGRADES.md)
+
+## What you're trusting
+
+Be clear-eyed about what this stack does before you run it:
+
+- **The agents execute code and reach the network.** They run with a coding
+  harness inside their containers and make outbound calls to LLM providers and
+  Git hosts. `YOLO=false` is set, but the containment story here is the network
+  boundary and the container, not a sandbox you should bet secrets on.
+- **Loopback-only is the perimeter.** Published ports (3013, 7433,
+  `MINIO_HOST_PORT`) bind `127.0.0.1`; MinIO's console (9001) and the agent
+  containers publish nothing. There is no authentication story beyond the single
+  `API_KEY`, so do not put this behind a tunnel or reverse proxy casually.
+- **`API_KEY` is total control.** RBAC is off. Anything holding that key owns the
+  swarm. `make dashboard-link` embeds it in a URL — convenient and secret.
+- **The hosted dashboard and agent-fs viewer are third-party-served pages** that
+  run with your key in *your* browser. That's a real trust decision; both have
+  local alternatives documented in [docs/OPERATIONS.md](docs/OPERATIONS.md).
+- **MinIO uses random root credentials** (never `minioadmin`), generated by
+  `bootstrap.sh`.
+- **`encryption_key` encrypts secrets at rest** in `swarm_api_data`. Back it up
+  encrypted and off-device.
+- **Give agents scoped credentials.** If you hand them a GitHub token, use a
+  fine-grained PAT limited to an explicit repo allowlist with only contents and
+  pull-requests read/write. Protect your default branches; let humans merge.
 
 ## Current pins
 
@@ -91,51 +175,84 @@ and identity). Backups/restores use explicit, checksum-verified volume ops inste
 | agent-fs | `ghcr.io/desplega-ai/agent-fs:0.9.0` |
 | MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` |
 | MinIO client | `minio/mc:RELEASE.2025-08-13T08-35-41Z` |
+| Backup helper | `alpine:3.20` |
 
-Full tag+digest references are in `versions.env`; every index was verified to
-include `linux/arm64`.
+Full `tag@sha256:<digest>` references are in `versions.env`; each index was
+verified to include `linux/arm64` when it was pinned. `./scripts/check-updates.sh`
+is read-only upgrade reconnaissance. To actually upgrade, follow
+[docs/UPGRADES.md](docs/UPGRADES.md) — API and worker images always move together
+to the identical version, and agent-fs follows the version the target release
+declares.
 
-## Security posture
+## Troubleshooting
 
-- All published ports bind `127.0.0.1` only (3013, 7433, `MINIO_HOST_PORT`).
-  MinIO console 9001 and agent ports are not published.
-- MinIO uses random root credentials (never `minioadmin`).
-- `RBAC_ENABLED=false` (single operator key). Inbound Slack/GitHub/Linear/Jira
-  disabled; `GITHUB_DISABLE=true` disables only inbound webhooks — worker
-  `GITHUB_TOKEN` clone/branch/push/PR operations still work.
-- The GitHub PAT is passed only to `worker-claude` and `worker-codex`.
-- `encryption_key` encrypts secrets in `swarm_api_data`. **Lose it and every
-  stored secret is unrecoverable.** Back it up encrypted, off-device.
+**An agent container is crash-looping (often after a host or Docker reboot).**
+This is the one you'll hit. Worker containers must be *recreated*, not started —
+on a reused `/workspace`, the upstream entrypoint takes its "prepend to existing
+start-up.sh" branch and leaves that file root-owned and unreadable by the
+`worker` user. Durable state lives in volumes, so recreating is lossless:
 
-## Status / known limitations
+```bash
+make restart-agents
+```
 
-- **Phase 0 (discovery):** done. arm64, 6 CPUs, ~7.8 GiB RAM; ports 3013/7433 free;
-  9000 in use (→ 9002); no prior swarm install; 218 GiB free disk.
-- **Phase 1 (scaffold + static validation):** done. shellcheck clean, `compose
-  config` valid, images digest-pinned (no `latest`), no amd64/pull_policy, secrets
-  git-ignored.
-- **Phase 2+ (bring-up, agents, memory tests, backup drill):** pending. Requires
-  the two host decisions above (port already defaulted to 9002; confirm memory) and
-  the provider credentials in `.env`. Phase 4 must **empirically confirm** that
-  `MAX_CONCURRENT_TASKS=1` overrides the `official/coder` template's `maxTasks:3`
-  (source docs don't state the precedence; the 3-task test verifies aggregate
-  worker concurrency never exceeds 2).
-- `HEARTBEAT_CHECKLIST_DISABLE` exists (verified in source) but is left unset
-  deliberately — it's parsed as `Boolean(env)`, so any non-empty value, even
-  `"false"`, disables the checklist.
-- **Worker restart requires recreate (upstream entrypoint bug).** Worker
-  containers must be restarted with `docker compose ... up -d --force-recreate`,
-  not plain `start`/`docker restart`. On a reused `/workspace`, the entrypoint's
-  "prepend to existing start-up.sh" branch leaves that file root-owned/unreadable
-  and the worker crash-loops. Durable state is in volumes, so recreate is lossless.
-  After a host/Docker reboot the workers auto-start on their old filesystem and
-  crash-loop until recreated — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
-- The dashboard is not part of this stack; run it on-demand (see
-  [docs/OPERATIONS.md](docs/OPERATIONS.md)).
+**`make verify` reports `local-fs` instead of `agent-fs`.** The API fell back to
+its built-in filesystem, so agent memory is not persisting to agent-fs. Check
+`make logs SERVICE=agent-fs` — usually agent-fs is unhealthy or still pulling its
+embedding model on first boot.
 
-## Conductor boundary
+**agent-fs never becomes healthy.** First boot downloads an embedding model; give
+it several minutes. If it persists, check that MinIO is healthy and that
+`minio-init` exited 0 (`make verify` checks both).
 
-This repo and its Docker volumes are persistent infrastructure and live **outside**
-any Conductor workspace (workspaces are disposable task-branch worktrees). Do not
-bind-mount a Conductor workspace into a worker. Agent Swarm uses its own container
-workspaces and opens PRs for review in Conductor.
+**Compose errors about an empty or missing variable.** You almost certainly ran
+`docker compose` without both env files, or with an `.env` predating a new
+variable. Use the Makefile, and re-run `./scripts/bootstrap.sh` — it backfills
+newly-added keys without touching existing identity.
+
+**An agent has no identity / a duplicate agent appeared.** Agent IDs in `.env` map
+1:1 to personal volumes and are permanent. Never regenerate them; a new UUID
+orphans that agent's memory.
+
+## Known limitations
+
+- Worker restart requires recreate (upstream entrypoint behaviour) — see above.
+- The dashboard is not part of this stack; run it on demand.
+- `HEARTBEAT_CHECKLIST_DISABLE` is left unset deliberately. Upstream parses it as
+  `Boolean(env)`, so *any* non-empty value — even `"false"` — disables the
+  checklist.
+- Agent concurrency is capped explicitly in `compose.yaml`: the lead (`tars`)
+  runs up to 3 tasks, each of the three workers exactly 1. Do not use
+  `docker compose up --scale`; every agent needs a unique stable `AGENT_ID` and
+  its own volume.
+- Only arm64 is verified — see [Platform support](#platform-support).
+
+## Layout
+
+```
+compose.yaml        trimmed stack (fixed project + volume names, loopback ports)
+versions.env        image tag+digest pins (arm64-verified)
+Makefile            operator shortcuts (always passes both env files)
+.env                secrets + permanent identity (git-ignored, mode 600)
+.env.example        reference for every variable compose.yaml consumes
+encryption_key      secrets-encryption key (git-ignored, mode 600, Compose secret)
+scripts/            bootstrap · verify · backup · restore · check-updates · set-model
+docs/               OPERATIONS · BACKUP-RESTORE · UPGRADES
+backups/            local staging only (git-ignored)
+```
+
+## Getting help
+
+Open an issue on this repository for problems with *this deployment config*. For
+bugs in Agent Swarm or agent-fs themselves, use
+[desplega-ai/agent-swarm](https://github.com/desplega-ai/agent-swarm) — this repo
+ships no upstream source and cannot fix them. Security reports:
+[SECURITY.md](SECURITY.md).
+
+Contributions are welcome, but this repo has strict, non-obvious rules about
+image pinning and arm64 verification. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) first.
+
+## License
+
+[MIT](LICENSE).
