@@ -35,9 +35,15 @@ deltas already applied here vs. the upstream example, so re-diffs are meaningful
 - MinIO host port via `MINIO_HOST_PORT` (default 9002, not 9000).
 - Loopback-only published ports; MinIO console 9001 unpublished.
 - No `platform: linux/amd64`, no `pull_policy: always` (we pin arm64 by digest).
-- `MAX_CONCURRENT_TASKS=1` set explicitly on both workers and the lead.
+- `MAX_CONCURRENT_TASKS` set explicitly on every agent — as of v1.121.1 the lead
+  (`tars`) is `3`, the three workers stay `1`.
 - `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
-- `HEARTBEAT_CHECKLIST_DISABLE` omitted (does not exist in v1.119.1).
+- `HEARTBEAT_CHECKLIST_DISABLE` left unset (the var exists but `Boolean(env)`
+  parsing means any non-empty value, even `"false"`, disables the checklist).
+- Explicit `CAPABILITIES` on the `api` service (since v1.121.1, which introduced
+  capability-gated MCP tool registration) — set to the v1.119.1-equivalent tool
+  surface plus `services`, since the new upstream default drops `services` and
+  would otherwise silently disable register-service/PM2 discovery.
 - Worker auth via `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` + `HARNESS_PROVIDER`
   (upstream example uses `CLAUDE_CODE_OAUTH_TOKEN`).
 

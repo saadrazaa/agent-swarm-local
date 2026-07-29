@@ -2,7 +2,7 @@
 
 Trimmed, single-user, loopback-only Docker deployment of
 [desplega-ai/agent-swarm](https://github.com/desplega-ai/agent-swarm) pinned at
-**v1.119.1** with **agent-fs 0.9.0**, for Apple Silicon. Persistent agent memory
+**v1.121.1** with **agent-fs 0.9.0**, for Apple Silicon. Persistent agent memory
 is provided by agent-fs backed by a local MinIO.
 
 This repository contains **only** Compose config, version pins, operational
@@ -86,8 +86,8 @@ and identity). Backups/restores use explicit, checksum-verified volume ops inste
 
 | Component | Reference |
 |---|---|
-| API | `ghcr.io/desplega-ai/agent-swarm:1.119.1` |
-| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:1.119.1` |
+| API | `ghcr.io/desplega-ai/agent-swarm:1.121.1` |
+| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:1.121.1` |
 | agent-fs | `ghcr.io/desplega-ai/agent-fs:0.9.0` |
 | MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` |
 | MinIO client | `minio/mc:RELEASE.2025-08-13T08-35-41Z` |
@@ -120,8 +120,9 @@ include `linux/arm64`.
   `MAX_CONCURRENT_TASKS=1` overrides the `official/coder` template's `maxTasks:3`
   (source docs don't state the precedence; the 3-task test verifies aggregate
   worker concurrency never exceeds 2).
-- `HEARTBEAT_CHECKLIST_DISABLE` from the plan does not exist in v1.119.1 and was
-  omitted.
+- `HEARTBEAT_CHECKLIST_DISABLE` exists (verified in source) but is left unset
+  deliberately — it's parsed as `Boolean(env)`, so any non-empty value, even
+  `"false"`, disables the checklist.
 - **Worker restart requires recreate (upstream entrypoint bug).** Worker
   containers must be restarted with `docker compose ... up -d --force-recreate`,
   not plain `start`/`docker restart`. On a reused `/workspace`, the entrypoint's
