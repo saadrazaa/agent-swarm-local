@@ -190,6 +190,31 @@ exits non-zero on any failure and is invoked by `backup.sh` and `restore.sh`.
 A `local-fs` result is the important one: it means agent memory is not persisting
 to agent-fs. Check `make logs SERVICE=agent-fs`.
 
+### Memory embeddings (semantic search)
+
+The API embeds memories with OpenAI only when it has a key
+(`EMBEDDING_API_KEY`, wired from `OPENAI_API_KEY` in compose). Check state:
+
+```bash
+curl -s -H "Authorization: Bearer $API_KEY" http://127.0.0.1:3013/api/memory/health
+```
+
+Healthy: `retrievalMode: "vec"` and `counts.withEmbedding` ≈ `counts.total`.
+`retrievalMode: "fallback"` with reason `memory_vec_empty` means memories exist
+but none are embedded — searches are keyword-only. A key change requires an API
+restart (the embedding client is constructed once per process), and rows written
+while the key was missing stay unembedded until you backfill:
+
+```bash
+# One-shot backfill; async, returns 202 immediately, re-embeds ALL rows.
+curl -s -X POST -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" -d '{}' \
+  http://127.0.0.1:3013/api/memory/re-embed
+```
+
+Progress appears in `make logs SERVICE=api` as `[memory] Re-embedded batch N/M`;
+re-check `/api/memory/health` afterwards.
+
 ## Changing an agent's model
 
 ```bash

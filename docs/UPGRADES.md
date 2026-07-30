@@ -55,6 +55,19 @@ upstream example silently reverts them:
   would otherwise silently disable register-service/PM2 discovery.
 - Worker auth via `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` + `HARNESS_PROVIDER`
   (upstream example uses `CLAUDE_CODE_OAUTH_TOKEN`).
+- `EMBEDDING_API_KEY: ${OPENAI_API_KEY:-}` on the `api` service (the upstream
+  example passes no embedding key to the API). The memory embedding provider
+  reads `EMBEDDING_API_KEY` then `OPENAI_API_KEY` from the API's environment;
+  without one it silently stores NULL embeddings and memory-search runs
+  keyword-only (`/api/memory/health` → `retrievalMode: "fallback"`). After
+  enabling, backfill once with `POST /api/memory/re-embed`
+  (see [OPERATIONS.md](OPERATIONS.md)).
+- Share-link env on **every** agent service: `APP_URL`, `SWARM_URL`,
+  `AGENT_FS_LIVE_URL` (defaults: hosted dashboard `https://app.agent-swarm.dev`,
+  bare host `app.agent-swarm.dev`, hosted viewer `https://live.agent-fs.dev`).
+  The upstream example sets only `SWARM_URL` on agents; without these, agents
+  only see `MCP_BASE_URL=http://api:3013` and emit container-internal share
+  links.
 
 ## Execution
 

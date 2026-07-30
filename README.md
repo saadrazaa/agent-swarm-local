@@ -75,7 +75,9 @@ nobody has tried; treat it as unsupported rather than broken.
   `encryption_key`, and for backups. Losing `encryption_key` makes every secret
   stored in the API database permanently unrecoverable.
 - **Provider credentials:** an Anthropic API key *or* a Claude Code OAuth token
-  (for the three Claude agents), and an OpenAI API key (for the Codex worker).
+  (for the three Claude agents), and an OpenAI API key (for the Codex worker and
+  for the API's memory embeddings — without it, semantic memory search silently
+  degrades to keyword matching).
 
 ## Quick start
 
