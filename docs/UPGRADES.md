@@ -45,6 +45,10 @@ upstream example silently reverts them:
 - `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
 - `HEARTBEAT_CHECKLIST_DISABLE` left unset (the var exists but `Boolean(env)`
   parsing means any non-empty value, even `"false"`, disables the checklist).
+- `STEERING_ENABLED` left unset (introduced in v1.123.0, upstream default off):
+  task steering stays disabled on API and workers. Its companion vars
+  (`SLACK_THREAD_STEERING`, `CLAUDE_QUEUE_STEERING`) are also unset; enable
+  deliberately, never via a port-forward of the upstream example.
 - Explicit `CAPABILITIES` on the `api` service (since v1.121.1, which introduced
   capability-gated MCP tool registration) — set to the v1.119.1-equivalent tool
   surface plus `services`, since the new upstream default drops `services` and
