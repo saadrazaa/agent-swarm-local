@@ -245,7 +245,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
-      MAX_CONCURRENT_TASKS: "1"  # official/coder advertises maxTasks:3 — cap explicitly
+      MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${CLAUDE_WORKER_AGENT_ID}
@@ -280,7 +280,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
-      MAX_CONCURRENT_TASKS: "1"  # official/coder advertises maxTasks:3 — cap explicitly
+      MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${CODEX_WORKER_AGENT_ID}
@@ -315,7 +315,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
-      MAX_CONCURRENT_TASKS: "1"
+      MAX_CONCURRENT_TASKS: "2"
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${RESEARCHER_AGENT_ID}
