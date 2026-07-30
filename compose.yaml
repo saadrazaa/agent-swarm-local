@@ -154,6 +154,16 @@ services:
       LINEAR_DISABLE: "true"
       JIRA_DISABLE: "true"
       ANONYMIZED_TELEMETRY: "false"
+      # Memory embeddings (semantic memory-search). The API embeds agent_memory
+      # rows with OpenAI text-embedding-3-small, reading EMBEDDING_API_KEY then
+      # OPENAI_API_KEY from its own environment. Without a key the provider
+      # silently stores NULL embeddings — no error is logged — and every
+      # memory-search degrades to keyword-only FTS (GET /api/memory/health
+      # reports retrievalMode "fallback"). Reuse the OpenAI key .env already
+      # carries for rocky, under the embedding-specific name so the API's other
+      # OpenAI codepaths stay untouched. After first enabling this, backfill
+      # existing rows once: POST /api/memory/re-embed (see docs/OPERATIONS.md).
+      EMBEDDING_API_KEY: ${OPENAI_API_KEY:-}
       # NOTE: HEARTBEAT_CHECKLIST_DISABLE exists but is left unset deliberately —
       # it's parsed as Boolean(env), so any non-empty value (even "false") disables
       # the checklist.
@@ -188,6 +198,15 @@ services:
       API_KEY: ${API_KEY}
       MCP_BASE_URL: http://api:3013
       AGENT_FS_API_URL: http://agent-fs:7433
+      # Share-link hosts for agent-generated URLs (dashboard pages, agent-fs
+      # files, plain-copy domains). Without these the only host an agent sees
+      # is MCP_BASE_URL (http://api:3013) and every share link it emits is a
+      # container-internal URL no human can open. Defaults match this stack:
+      # hosted dashboard + hosted agent-fs viewer; override in .env if you run
+      # the UI locally.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
+      AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "3"
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
@@ -217,6 +236,15 @@ services:
       API_KEY: ${API_KEY}
       MCP_BASE_URL: http://api:3013
       AGENT_FS_API_URL: http://agent-fs:7433
+      # Share-link hosts for agent-generated URLs (dashboard pages, agent-fs
+      # files, plain-copy domains). Without these the only host an agent sees
+      # is MCP_BASE_URL (http://api:3013) and every share link it emits is a
+      # container-internal URL no human can open. Defaults match this stack:
+      # hosted dashboard + hosted agent-fs viewer; override in .env if you run
+      # the UI locally.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
+      AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "1"  # official/coder advertises maxTasks:3 — cap explicitly
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
@@ -243,6 +271,15 @@ services:
       API_KEY: ${API_KEY}
       MCP_BASE_URL: http://api:3013
       AGENT_FS_API_URL: http://agent-fs:7433
+      # Share-link hosts for agent-generated URLs (dashboard pages, agent-fs
+      # files, plain-copy domains). Without these the only host an agent sees
+      # is MCP_BASE_URL (http://api:3013) and every share link it emits is a
+      # container-internal URL no human can open. Defaults match this stack:
+      # hosted dashboard + hosted agent-fs viewer; override in .env if you run
+      # the UI locally.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
+      AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "1"  # official/coder advertises maxTasks:3 — cap explicitly
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
@@ -269,6 +306,15 @@ services:
       API_KEY: ${API_KEY}
       MCP_BASE_URL: http://api:3013
       AGENT_FS_API_URL: http://agent-fs:7433
+      # Share-link hosts for agent-generated URLs (dashboard pages, agent-fs
+      # files, plain-copy domains). Without these the only host an agent sees
+      # is MCP_BASE_URL (http://api:3013) and every share link it emits is a
+      # container-internal URL no human can open. Defaults match this stack:
+      # hosted dashboard + hosted agent-fs viewer; override in .env if you run
+      # the UI locally.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
+      AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "1"
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
