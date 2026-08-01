@@ -47,7 +47,7 @@ if [[ -f "$ENV_FILE" ]]; then
   fi
   if ! grep -q '^IGRIS_AGENT_ID=' "$ENV_FILE"; then
     printf 'IGRIS_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"
-    echo "  backfilled IGRIS_AGENT_ID (identity for the igris reviewer)."
+    echo "  backfilled IGRIS_AGENT_ID (identity for the igris coder)."
   fi
   if ! grep -q '^BERU_AGENT_ID=' "$ENV_FILE"; then
     printf 'BERU_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"

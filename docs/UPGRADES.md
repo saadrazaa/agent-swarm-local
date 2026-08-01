@@ -41,10 +41,10 @@ upstream example silently reverts them:
 - `MAX_CONCURRENT_TASKS` set explicitly on **every** agent, because
   `official/coder` advertises `maxTasks: 3` and would otherwise apply. Current
   values (each set to its own template's default rather than left to the
-  fallback): lead `tars` = `3`; workers `chase` (coder), `rocky` (coder),
-  `igris` (reviewer), `beru` (coder) = `3` each; `einstein` and `socrates`
-  (both researcher) = `2` each (aggregate worker concurrency 16). Update this
-  line whenever a value changes.
+  fallback): lead `tars` = `3`; workers `chase`, `rocky`, `igris`, `beru`
+  (all coder) = `3` each; `einstein` and `socrates` (both researcher) = `2`
+  each (aggregate worker concurrency 16). Update this line whenever a value
+  changes.
 - `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
 - `HEARTBEAT_CHECKLIST_DISABLE` left unset (the var exists but `Boolean(env)`
   parsing means any non-empty value, even `"false"`, disables the checklist).

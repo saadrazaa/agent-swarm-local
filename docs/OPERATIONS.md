@@ -81,10 +81,9 @@ identity). Plain `make down` removes containers but keeps volumes; the next
 
 - Concurrency is capped explicitly per agent in `compose.yaml`, matching each
   agent's own template default rather than being left to the image fallback:
-  the lead `tars` runs up to **3** tasks; workers `chase` (coder), `rocky`
-  (coder), `igris` (reviewer), and `beru` (coder) run **3** each; `einstein`
-  and `socrates` (both researcher) run **2** each. That puts aggregate worker
-  concurrency at **16**.
+  the lead `tars` runs up to **3** tasks; workers `chase`, `rocky`, `igris`,
+  and `beru` (all coder) run **3** each; `einstein` and `socrates` (both
+  researcher) run **2** each. That puts aggregate worker concurrency at **16**.
 - Do not use `docker compose up --scale` — every agent needs a unique stable
   `AGENT_ID` and its own personal volume.
 - Assign a task to a specific harness by that agent's stable UUID (Claude vs
@@ -103,6 +102,11 @@ regenerated — a new UUID orphans that agent's memory and identity. `bootstrap.
 refuses to overwrite an existing `.env` or `encryption_key` for exactly this
 reason; it only ever *appends* variables added in later revisions. Changing
 `TEMPLATE_ID` is not an upgrade mechanism.
+
+`TEMPLATE_ID` seeds only profile fields that are still **empty**, so it cannot
+re-personalise a live agent; personas themselves live in the swarm database, not
+in this repo. Who each agent is, and how to apply a persona after a rebuild:
+[AGENTS.md](AGENTS.md).
 
 ## Git and provider credentials
 

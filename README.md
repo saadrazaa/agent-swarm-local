@@ -45,11 +45,14 @@ API-coordinated agents (outbound LLM + Git only), each with its own volume:
   chase     coder       Claude   official/coder
   rocky     coder       Codex    official/coder
   einstein  researcher  Claude   official/researcher
-  igris     reviewer    Claude   official/reviewer
+  igris     coder       Claude   official/coder
   beru      coder       Claude   official/coder
   socrates  researcher  Claude   official/researcher
                                         \--> shared workspace (swarm_shared)
 ```
+
+Who each agent is, and where its personality actually lives:
+[docs/AGENTS.md](docs/AGENTS.md).
 
 Ten long-running containers (`minio`, `agent-fs`, `api`, and the seven agents)
 plus two one-shots (`minio-init`, `agent-fs-viewer-init`). Only the control plane
@@ -143,6 +146,7 @@ docker compose --env-file versions.env --env-file .env -p agent-swarm-local ps
 > explicit, checksum-verified volume operations instead.
 
 Details: [docs/OPERATIONS.md](docs/OPERATIONS.md) ·
+[docs/AGENTS.md](docs/AGENTS.md) ·
 [docs/BACKUP-RESTORE.md](docs/BACKUP-RESTORE.md) ·
 [docs/UPGRADES.md](docs/UPGRADES.md)
 
@@ -227,8 +231,8 @@ orphans that agent's memory.
   `Boolean(env)`, so *any* non-empty value — even `"false"` — disables the
   checklist.
 - Agent concurrency is capped explicitly in `compose.yaml`, matching each
-  agent's own template default: the lead (`tars`) runs up to 3 tasks; coder/
-  reviewer workers (`chase`, `rocky`, `igris`, `beru`) run 3 each; researcher
+  agent's own template default: the lead (`tars`) runs up to 3 tasks; coder
+  workers (`chase`, `rocky`, `igris`, `beru`) run 3 each; researcher
   workers (`einstein`, `socrates`) run 2 each. Do not use
   `docker compose up --scale`; every agent needs a unique stable `AGENT_ID` and
   its own volume.
@@ -244,7 +248,7 @@ Makefile            operator shortcuts (always passes both env files)
 .env.example        reference for every variable compose.yaml consumes
 encryption_key      secrets-encryption key (git-ignored, mode 600, Compose secret)
 scripts/            bootstrap · verify · backup · restore · check-updates · set-model
-docs/               OPERATIONS · BACKUP-RESTORE · UPGRADES
+docs/               AGENTS · OPERATIONS · BACKUP-RESTORE · UPGRADES
 backups/            local staging only (git-ignored)
 ```
 

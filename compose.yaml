@@ -353,13 +353,13 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
-      MAX_CONCURRENT_TASKS: "3"  # official/reviewer advertises maxTasks:3 — cap explicitly
+      MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${IGRIS_AGENT_ID}
       AGENT_NAME: IGRIS
       AGENT_ROLE: worker
-      TEMPLATE_ID: official/reviewer
+      TEMPLATE_ID: official/coder
       HARNESS_PROVIDER: claude
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
