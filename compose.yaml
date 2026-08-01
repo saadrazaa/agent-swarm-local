@@ -28,6 +28,9 @@ volumes:
   swarm_rocky: { name: swarm_rocky }
   swarm_rocky_codex: { name: swarm_rocky_codex }
   swarm_einstein: { name: swarm_einstein }
+  swarm_igris: { name: swarm_igris }
+  swarm_beru: { name: swarm_beru }
+  swarm_socrates: { name: swarm_socrates }
 
 services:
   minio:
@@ -329,5 +332,110 @@ services:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
       - swarm_einstein:/workspace/personal
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  igris:
+    image: ${AGENT_SWARM_WORKER_IMAGE}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      MCP_BASE_URL: http://api:3013
+      AGENT_FS_API_URL: http://agent-fs:7433
+      # Share-link hosts for agent-generated URLs (dashboard pages, agent-fs
+      # files, plain-copy domains). Without these the only host an agent sees
+      # is MCP_BASE_URL (http://api:3013) and every share link it emits is a
+      # container-internal URL no human can open. Defaults match this stack:
+      # hosted dashboard + hosted agent-fs viewer; override in .env if you run
+      # the UI locally.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
+      AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
+      YOLO: "false"
+      ANONYMIZED_TELEMETRY: "false"
+      AGENT_ID: ${IGRIS_AGENT_ID}
+      AGENT_NAME: IGRIS
+      AGENT_ROLE: worker
+      TEMPLATE_ID: official/coder
+      HARNESS_PROVIDER: claude
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+    volumes:
+      - swarm_logs:/logs
+      - swarm_shared:/workspace/shared
+      - swarm_igris:/workspace/personal
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  beru:
+    image: ${AGENT_SWARM_WORKER_IMAGE}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      MCP_BASE_URL: http://api:3013
+      AGENT_FS_API_URL: http://agent-fs:7433
+      # Share-link hosts for agent-generated URLs (dashboard pages, agent-fs
+      # files, plain-copy domains). Without these the only host an agent sees
+      # is MCP_BASE_URL (http://api:3013) and every share link it emits is a
+      # container-internal URL no human can open. Defaults match this stack:
+      # hosted dashboard + hosted agent-fs viewer; override in .env if you run
+      # the UI locally.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
+      AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
+      YOLO: "false"
+      ANONYMIZED_TELEMETRY: "false"
+      AGENT_ID: ${BERU_AGENT_ID}
+      AGENT_NAME: BERU
+      AGENT_ROLE: worker
+      TEMPLATE_ID: official/coder
+      HARNESS_PROVIDER: claude
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+    volumes:
+      - swarm_logs:/logs
+      - swarm_shared:/workspace/shared
+      - swarm_beru:/workspace/personal
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  socrates:
+    image: ${AGENT_SWARM_WORKER_IMAGE}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY}
+      MCP_BASE_URL: http://api:3013
+      AGENT_FS_API_URL: http://agent-fs:7433
+      # Share-link hosts for agent-generated URLs (dashboard pages, agent-fs
+      # files, plain-copy domains). Without these the only host an agent sees
+      # is MCP_BASE_URL (http://api:3013) and every share link it emits is a
+      # container-internal URL no human can open. Defaults match this stack:
+      # hosted dashboard + hosted agent-fs viewer; override in .env if you run
+      # the UI locally.
+      APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
+      AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      MAX_CONCURRENT_TASKS: "2"  # official/researcher advertises maxTasks:2 — cap explicitly
+      YOLO: "false"
+      ANONYMIZED_TELEMETRY: "false"
+      AGENT_ID: ${SOCRATES_AGENT_ID}
+      AGENT_NAME: SOCRATES
+      AGENT_ROLE: worker
+      TEMPLATE_ID: official/researcher
+      HARNESS_PROVIDER: claude
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+    volumes:
+      - swarm_logs:/logs
+      - swarm_shared:/workspace/shared
+      - swarm_socrates:/workspace/personal
     restart: unless-stopped
     stop_grace_period: 60s

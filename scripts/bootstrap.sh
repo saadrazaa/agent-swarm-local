@@ -45,6 +45,18 @@ if [[ -f "$ENV_FILE" ]]; then
     printf 'RESEARCHER_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"
     echo "  backfilled RESEARCHER_AGENT_ID (identity for the einstein researcher)."
   fi
+  if ! grep -q '^IGRIS_AGENT_ID=' "$ENV_FILE"; then
+    printf 'IGRIS_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"
+    echo "  backfilled IGRIS_AGENT_ID (identity for the igris coder)."
+  fi
+  if ! grep -q '^BERU_AGENT_ID=' "$ENV_FILE"; then
+    printf 'BERU_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"
+    echo "  backfilled BERU_AGENT_ID (identity for the beru coder)."
+  fi
+  if ! grep -q '^SOCRATES_AGENT_ID=' "$ENV_FILE"; then
+    printf 'SOCRATES_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"
+    echo "  backfilled SOCRATES_AGENT_ID (identity for the socrates researcher)."
+  fi
   echo "Edit .env directly to set or update provider credentials."
   exit 0
 fi
@@ -56,6 +68,9 @@ lead_id="$(uuidgen)"
 claude_id="$(uuidgen)"
 codex_id="$(uuidgen)"
 researcher_id="$(uuidgen)"
+igris_id="$(uuidgen)"
+beru_id="$(uuidgen)"
+socrates_id="$(uuidgen)"
 viewer_key="af_$(openssl rand -hex 32)"
 
 ( umask 177; cat > "$ENV_FILE" <<EOF
@@ -67,6 +82,9 @@ LEAD_AGENT_ID=${lead_id}
 CLAUDE_WORKER_AGENT_ID=${claude_id}
 CODEX_WORKER_AGENT_ID=${codex_id}
 RESEARCHER_AGENT_ID=${researcher_id}
+IGRIS_AGENT_ID=${igris_id}
+BERU_AGENT_ID=${beru_id}
+SOCRATES_AGENT_ID=${socrates_id}
 AGENT_FS_VIEWER_KEY=${viewer_key}
 AGENT_FS_VIEWER_EMAIL=viewer@local
 ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
