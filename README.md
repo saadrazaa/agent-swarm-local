@@ -45,10 +45,13 @@ API-coordinated agents (outbound LLM + Git only), each with its own volume:
   chase     coder       Claude   official/coder
   rocky     coder       Codex    official/coder
   einstein  researcher  Claude   official/researcher
+  igris     reviewer    Claude   official/reviewer
+  beru      coder       Claude   official/coder
+  socrates  researcher  Claude   official/researcher
                                         \--> shared workspace (swarm_shared)
 ```
 
-Seven long-running containers (`minio`, `agent-fs`, `api`, and the four agents)
+Ten long-running containers (`minio`, `agent-fs`, `api`, and the seven agents)
 plus two one-shots (`minio-init`, `agent-fs-viewer-init`). Only the control plane
 and persistence run locally — LLM inference and Git are outbound calls.
 
@@ -75,7 +78,7 @@ nobody has tried; treat it as unsupported rather than broken.
   `encryption_key`, and for backups. Losing `encryption_key` makes every secret
   stored in the API database permanently unrecoverable.
 - **Provider credentials:** an Anthropic API key *or* a Claude Code OAuth token
-  (for the three Claude agents), and an OpenAI API key (for the Codex worker and
+  (for the six Claude agents), and an OpenAI API key (for the Codex worker and
   for the API's memory embeddings — without it, semantic memory search silently
   degrades to keyword matching).
 
@@ -223,8 +226,10 @@ orphans that agent's memory.
 - `HEARTBEAT_CHECKLIST_DISABLE` is left unset deliberately. Upstream parses it as
   `Boolean(env)`, so *any* non-empty value — even `"false"` — disables the
   checklist.
-- Agent concurrency is capped explicitly in `compose.yaml`: the lead (`tars`)
-  runs up to 3 tasks, each of the three workers exactly 1. Do not use
+- Agent concurrency is capped explicitly in `compose.yaml`, matching each
+  agent's own template default: the lead (`tars`) runs up to 3 tasks; coder/
+  reviewer workers (`chase`, `rocky`, `igris`, `beru`) run 3 each; researcher
+  workers (`einstein`, `socrates`) run 2 each. Do not use
   `docker compose up --scale`; every agent needs a unique stable `AGENT_ID` and
   its own volume.
 - Only arm64 is verified — see [Platform support](#platform-support).

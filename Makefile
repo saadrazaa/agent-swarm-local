@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 DC := docker compose --env-file versions.env --env-file .env -p agent-swarm-local
 STORAGE := minio minio-init agent-fs api
-AGENTS := tars chase rocky einstein
+AGENTS := tars chase rocky einstein igris beru socrates
 DASHBOARD_URL ?= https://app.agent-swarm.dev
 API_URL := http://127.0.0.1:3013
 

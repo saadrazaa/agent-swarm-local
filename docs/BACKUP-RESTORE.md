@@ -18,8 +18,9 @@ the backup tooling changes.
 - `.env`, `compose.yaml`, `versions.env`
 
 Also archived: `swarm_shared` plus the per-agent volumes `swarm_tars`,
-`swarm_chase`, `swarm_rocky`, `swarm_rocky_codex`, and `swarm_einstein`
-(session/uncommitted artifacts). Logs are optional. `swarm_api_data` +
+`swarm_chase`, `swarm_rocky`, `swarm_rocky_codex`, `swarm_einstein`,
+`swarm_igris`, `swarm_beru`, and `swarm_socrates` (session/uncommitted
+artifacts). Logs are optional. `swarm_api_data` +
 `agent_fs_data` + `agent_fs_minio` must be restored as **one consistent set** —
 never mix an old DB with a newer MinIO snapshot.
 

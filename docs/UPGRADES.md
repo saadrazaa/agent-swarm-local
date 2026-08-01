@@ -40,8 +40,11 @@ upstream example silently reverts them:
 - No `platform: linux/amd64`, no `pull_policy: always` (we pin arm64 by digest).
 - `MAX_CONCURRENT_TASKS` set explicitly on **every** agent, because
   `official/coder` advertises `maxTasks: 3` and would otherwise apply. Current
-  values: lead `tars` = `3`; workers `chase`, `rocky`, `einstein` = `1` each
-  (aggregate worker concurrency 3). Update this line whenever a value changes.
+  values (each set to its own template's default rather than left to the
+  fallback): lead `tars` = `3`; workers `chase` (coder), `rocky` (coder),
+  `igris` (reviewer), `beru` (coder) = `3` each; `einstein` and `socrates`
+  (both researcher) = `2` each (aggregate worker concurrency 16). Update this
+  line whenever a value changes.
 - `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
 - `HEARTBEAT_CHECKLIST_DISABLE` left unset (the var exists but `Boolean(env)`
   parsing means any non-empty value, even `"false"`, disables the checklist).
@@ -83,7 +86,7 @@ mid-flight.
 3. Pull the new images **without** starting them.
 4. Let tasks finish or pause them gracefully.
 5. Take and verify a full offline pre-upgrade backup (`scripts/backup.sh`).
-6. Stop all four agents (`make pause`), then API, agent-fs, MinIO.
+6. Stop all seven agents (`make pause`), then API, agent-fs, MinIO.
 7. Start MinIO/minio-init + agent-fs; verify storage health.
 8. Start **API alone** — numbered SQL migrations run here (one transaction each;
    there is no down-migration framework, so a successful new API boot may change the

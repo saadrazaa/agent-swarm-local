@@ -12,8 +12,8 @@ alias dc='docker compose --env-file versions.env --env-file .env -p agent-swarm-
 
 Omitting either `--env-file` leaves image pins or identity variables unset, which
 fails in confusing ways. The services are `minio`, `minio-init`, `agent-fs`,
-`agent-fs-viewer-init`, `api`, and the four agents `tars`, `chase`, `rocky`,
-`einstein`.
+`agent-fs-viewer-init`, `api`, and the seven agents `tars`, `chase`, `rocky`,
+`einstein`, `igris`, `beru`, `socrates`.
 
 ## Bring-up
 
@@ -27,7 +27,7 @@ Equivalent by hand — storage and API first, agents second:
 ```bash
 dc up -d minio minio-init agent-fs api
 ./scripts/verify.sh                                 # health + agent-fs provider
-dc up -d --force-recreate tars chase rocky einstein
+dc up -d --force-recreate tars chase rocky einstein igris beru socrates
 ```
 
 `agent-fs` can take a few minutes on first boot while it downloads the local
@@ -54,15 +54,16 @@ make down      # remove containers, KEEP volumes (never passes -v)
 
 **Restarting agents — always recreate, never plain `start`.** Agent containers are
 stateless; their durable state lives in the `swarm_tars`, `swarm_chase`,
-`swarm_rocky`, `swarm_rocky_codex`, `swarm_einstein`, `swarm_shared`, and
-`swarm_logs` volumes. Their `/workspace` is container-local. A reused `/workspace`
-(from `dc start`, `docker restart`, or a host reboot) makes the upstream
-entrypoint take its "prepend to existing start-up.sh" branch, which leaves that
-file root-owned and unreadable by the `worker` user — the container then
-crash-loops on the startup script. Bringing a **fresh** container up avoids it:
+`swarm_rocky`, `swarm_rocky_codex`, `swarm_einstein`, `swarm_igris`, `swarm_beru`,
+`swarm_socrates`, `swarm_shared`, and `swarm_logs` volumes. Their `/workspace` is
+container-local. A reused `/workspace` (from `dc start`, `docker restart`, or a
+host reboot) makes the upstream entrypoint take its "prepend to existing
+start-up.sh" branch, which leaves that file root-owned and unreadable by the
+`worker` user — the container then crash-loops on the startup script. Bringing a
+**fresh** container up avoids it:
 
 ```bash
-make restart-agents        # dc up -d --force-recreate tars chase rocky einstein
+make restart-agents        # dc up -d --force-recreate tars chase rocky einstein igris beru socrates
 ```
 
 Storage and API (`minio`, `agent-fs`, `api`) restart fine with plain `dc start`.
@@ -78,10 +79,12 @@ identity). Plain `make down` removes containers but keeps volumes; the next
 
 ## Concurrency model
 
-- Concurrency is capped explicitly per agent in `compose.yaml`, because the
-  `official/coder` template advertises `maxTasks: 3` and would otherwise apply:
-  the lead `tars` runs up to **3** tasks; `chase`, `rocky`, and `einstein` run
-  **1** each. That puts aggregate worker concurrency at **3**.
+- Concurrency is capped explicitly per agent in `compose.yaml`, matching each
+  agent's own template default rather than being left to the image fallback:
+  the lead `tars` runs up to **3** tasks; workers `chase` (coder), `rocky`
+  (coder), `igris` (reviewer), and `beru` (coder) run **3** each; `einstein`
+  and `socrates` (both researcher) run **2** each. That puts aggregate worker
+  concurrency at **16**.
 - Do not use `docker compose up --scale` — every agent needs a unique stable
   `AGENT_ID` and its own personal volume.
 - Assign a task to a specific harness by that agent's stable UUID (Claude vs
