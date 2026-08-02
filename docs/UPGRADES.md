@@ -9,6 +9,12 @@
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
   without a separate compatibility test.
 - Upgrade MinIO separately when possible.
+- Pin the worker to the **plain** versioned tag, never the `-slim` sibling
+  published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
+  drops `glab`, the build toolchain, Playwright/`qa-use`, the bundled Postgres
+  and Redis servers, `sentry-cli`, `localtunnel`, `claude-bridge`, the
+  context-mode harness hook plugins, and `vim`/`tmux`/`htop`/`tree`. The plain
+  tag is `worker-full`, which is what this stack expects.
 - Never auto-pull or deploy `latest`. `scripts/check-updates.sh` is read-only.
 
 ## Review before upgrading
@@ -51,11 +57,17 @@ upstream example silently reverts them:
 - `STEERING_ENABLED` left unset (introduced in v1.123.0, upstream default off):
   task steering stays disabled on API and workers. Its companion vars
   (`SLACK_THREAD_STEERING`, `CLAUDE_QUEUE_STEERING`) are also unset; enable
-  deliberately, never via a port-forward of the upstream example.
+  deliberately, never via a port-forward of the upstream example. Since v1.125.0
+  the worker image also ships a root-owned `/etc/codex/requirements.toml`
+  registering Codex lifecycle hooks — inert while `STEERING_ENABLED` is unset,
+  so `rocky` gets the file and no behaviour change.
 - Explicit `CAPABILITIES` on the `api` service (since v1.121.1, which introduced
   capability-gated MCP tool registration) — set to the v1.119.1-equivalent tool
   surface plus `services`, since the new upstream default drops `services` and
-  would otherwise silently disable register-service/PM2 discovery.
+  would otherwise silently disable register-service/PM2 discovery. Keep `kv` in
+  that list: from v1.125.0 any MCP result over 10 KB is spilled to a 24h
+  per-agent KV namespace and retrieved via `kv-get`, so dropping `kv` would make
+  oversized tool results unreadable.
 - Worker auth via `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` + `HARNESS_PROVIDER`
   (upstream example uses `CLAUDE_CODE_OAUTH_TOKEN`).
 - `EMBEDDING_API_KEY: ${OPENAI_API_KEY:-}` on the `api` service (the upstream
