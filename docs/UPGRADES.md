@@ -7,7 +7,11 @@
 - Upgrade API and worker **together** to the exact same version.
 - Treat the agent-fs version declared by the target Agent Swarm Compose tag as the
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
-  without a separate compatibility test.
+  without a separate compatibility test. This cuts both ways: leaving `AGENT_FS_IMAGE`
+  *behind* the declared version is also an independent pin. When the declared version
+  moves, it moves in the same PR as the API/worker pins. v1.129.0 declares agent-fs
+  **0.12.2** in all three upstream sites (compose example, Helm values, and
+  `Dockerfile.worker`'s `AGENT_FS_VERSION` ARG); v1.125.0 declared 0.9.0.
 - Upgrade MinIO separately when possible.
 - Pin the worker to the **plain** versioned tag, never the `-slim` sibling
   published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
@@ -16,6 +20,20 @@
   context-mode harness hook plugins, and `vim`/`tmux`/`htop`/`tree`. The plain
   tag is `worker-full`, which is what this stack expects.
 - Never auto-pull or deploy `latest`. `scripts/check-updates.sh` is read-only.
+- Since v1.126.0 a worker/lead container **exits fatally** if `${MCP_BASE_URL}/health`
+  is unreachable within `WORKER_API_READY_TIMEOUT_SECONDS` (default `90`). It is a
+  bootstrap-only variable — it must be in the container environment, never in
+  `swarm_config` — and this stack deliberately leaves it unset: every agent service
+  already declares `depends_on: api: condition: service_healthy` plus
+  `restart: unless-stopped`, which orders boot and self-heals a transient failure.
+  Start agents against a genuinely down API and they now die instead of limping.
+- Since v1.129.0 `PAGE_SESSION_SECRET` no longer falls back to `API_KEY`. Left
+  unset, the API generates 32 random bytes and persists them at
+  `<dirname(DATABASE_PATH)>/.page-session-secret` — here `/app/data/.page-session-secret`,
+  inside `swarm_api_data`, which `scripts/backup.sh` already captures. So no action
+  is needed; but a `swarm_api_data` restore from a *different* backup generation
+  invalidates live page sessions, and setting `PAGE_SESSION_SECRET` (or the new
+  `PAGE_SESSION_SECRET_FILE`) explicitly is the only way to make them survive that.
 
 ## Review before upgrading
 
@@ -67,7 +85,11 @@ upstream example silently reverts them:
   would otherwise silently disable register-service/PM2 discovery. Keep `kv` in
   that list: from v1.125.0 any MCP result over 10 KB is spilled to a 24h
   per-agent KV namespace and retrieved via `kv-get`, so dropping `kv` would make
-  oversized tool results unreadable.
+  oversized tool results unreadable. Keep `skills` in it too: from v1.129.0 the
+  ai-toolbox skill catalog is no longer baked into the worker image — the API
+  seeds it into the DB at boot and serves it from there, so an API without the
+  `skills` capability leaves every worker with only the image-baked `agent-fs`
+  (and `qa-use`) skills, silently and with no error at the worker end.
 - Worker auth via `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` + `HARNESS_PROVIDER`
   (upstream example uses `CLAUDE_CODE_OAUTH_TOKEN`).
 - `EMBEDDING_API_KEY: ${OPENAI_API_KEY:-}` on the `api` service (the upstream
