@@ -9,9 +9,10 @@
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
   without a separate compatibility test. This cuts both ways: leaving `AGENT_FS_IMAGE`
   *behind* the declared version is also an independent pin. When the declared version
-  moves, it moves in the same PR as the API/worker pins. v1.129.0 declares agent-fs
-  **0.12.2** in all three upstream sites (compose example, Helm values, and
-  `Dockerfile.worker`'s `AGENT_FS_VERSION` ARG); v1.125.0 declared 0.9.0.
+  moves, it moves in the same PR as the API/worker pins. v1.131.1 still declares
+  agent-fs **0.12.2** in all three upstream sites (compose example, Helm values, and
+  `Dockerfile.worker`'s `AGENT_FS_VERSION` ARG), unchanged since v1.129.0;
+  v1.125.0 declared 0.9.0.
 - Upgrade MinIO separately when possible.
 - Pin the worker to the **plain** versioned tag, never the `-slim` sibling
   published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
@@ -27,6 +28,13 @@
   already declares `depends_on: api: condition: service_healthy` plus
   `restart: unless-stopped`, which orders boot and self-heals a transient failure.
   Start agents against a genuinely down API and they now die instead of limping.
+- Since v1.131.1 the **API** process runs a scratch-script garbage collector on a
+  24h tick (immediate first sweep at boot). It deletes agent-scope `scratch-*`
+  scripts untouched for 14 days; named scripts, and scripts referenced by an app,
+  a `script_apis` endpoint or an enabled workflow node, are excluded. Migration
+  `130` stamps `updatedAt = now` on every existing scratch row, so the upgrade
+  boot reaps nothing and the first real deletions land ~14 days later. Nothing to
+  configure — the retention window is a source constant, not an env var.
 - Since v1.129.0 `PAGE_SESSION_SECRET` no longer falls back to `API_KEY`. Left
   unset, the API generates 32 random bytes and persists them at
   `<dirname(DATABASE_PATH)>/.page-session-secret` — here `/app/data/.page-session-secret`,
