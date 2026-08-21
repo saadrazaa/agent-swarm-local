@@ -2,7 +2,7 @@
 
 A trimmed, single-operator, loopback-only Docker Compose deployment of
 [desplega-ai/agent-swarm](https://github.com/desplega-ai/agent-swarm), pinned at
-**v1.129.0** with **agent-fs 0.12.2**. Persistent agent memory is provided by
+**v1.134.0** with **agent-fs 0.13.0**. Persistent agent memory is provided by
 agent-fs backed by a local MinIO. Everything runs on your host; nothing is
 exposed beyond `127.0.0.1`.
 
@@ -179,9 +179,9 @@ Be clear-eyed about what this stack does before you run it:
 
 | Component | Reference |
 |---|---|
-| API | `ghcr.io/desplega-ai/agent-swarm:1.129.0` |
-| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:1.129.0` |
-| agent-fs | `ghcr.io/desplega-ai/agent-fs:0.12.2` |
+| API | `ghcr.io/desplega-ai/agent-swarm:1.134.0` |
+| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:1.134.0` |
+| agent-fs | `ghcr.io/desplega-ai/agent-fs:0.13.0` |
 | MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` |
 | MinIO client | `minio/mc:RELEASE.2025-08-13T08-35-41Z` |
 | Backup helper | `alpine:3.20` |

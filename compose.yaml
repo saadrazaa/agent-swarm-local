@@ -139,6 +139,15 @@ services:
         condition: service_healthy
     environment:
       API_KEY: ${API_KEY}
+      # Set explicitly since v1.130.0 (#1141), which added a runtime response-schema
+      # validation gate in src/http/route-def.ts keyed on NODE_ENV. Upstream sets
+      # NODE_ENV nowhere (not in the compose example, the Dockerfile, or any
+      # entrypoint), and the API image is a compiled Bun binary, whose default
+      # NODE_ENV is "development" — which would turn the gate on. Consequence is
+      # bounded to log noise ("[route-def] Response schema violation: ..." lines;
+      # only NODE_ENV=test throws), but there is no reason to run a deployment with
+      # a development-mode validator.
+      NODE_ENV: production
       RBAC_ENABLED: "false"
       AGENT_FS_API_URL: http://agent-fs:7433
       AGENT_FS_REGISTER_EMAIL: swarm-admin@agent-fs.local
