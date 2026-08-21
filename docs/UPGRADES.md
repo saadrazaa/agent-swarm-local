@@ -9,9 +9,10 @@
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
   without a separate compatibility test. This cuts both ways: leaving `AGENT_FS_IMAGE`
   *behind* the declared version is also an independent pin. When the declared version
-  moves, it moves in the same PR as the API/worker pins. v1.129.0 declares agent-fs
-  **0.12.2** in all three upstream sites (compose example, Helm values, and
-  `Dockerfile.worker`'s `AGENT_FS_VERSION` ARG); v1.125.0 declared 0.9.0.
+  moves, it moves in the same PR as the API/worker pins. v1.134.0 declares agent-fs
+  **0.13.0** in all three upstream sites (compose example, Helm values, and
+  `Dockerfile.worker`'s `AGENT_FS_VERSION` ARG); v1.129.0 declared 0.12.2 and
+  v1.125.0 declared 0.9.0.
 - Upgrade MinIO separately when possible.
 - Pin the worker to the **plain** versioned tag, never the `-slim` sibling
   published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
@@ -68,7 +69,25 @@ upstream example silently reverts them:
   fallback): lead `tars` = `3`; workers `chase`, `rocky`, `igris`, `beru`
   (all coder) = `3` each; `einstein` and `socrates` (both researcher) = `2`
   each (aggregate worker concurrency 16). Update this line whenever a value
-  changes.
+  changes. Since v1.133.1 concurrency is governed in **two** places:
+  `MAX_CONCURRENT_TASKS` remains the per-container worker-process limit
+  (`src/commands/runner.ts`, `env > template default > role default`), while the
+  new agent-scoped `AGENT_MAX_TASKS` `swarm_config` key is a server-side
+  *logical* limit. This stack sets only the former; `AGENT_MAX_TASKS` is left to
+  seed itself from `agents.maxTasks` (`reconcileAgentMaxTasksPolicy()`), which is
+  the already-enforced value, so the default configuration cannot drift. It is a
+  DB config key, not an environment variable — do not add it to `compose.yaml`.
+- `NODE_ENV: production` on the `api` service. Upstream sets `NODE_ENV` nowhere
+  (not in the compose example, the `Dockerfile`, `.env.docker.example`, or any
+  entrypoint), and the API image is a compiled Bun binary (`bun build --compile`),
+  whose default `NODE_ENV` is `development`. Since v1.130.0 (#1141)
+  `src/http/route-def.ts` turns on runtime response-schema validation when
+  `NODE_ENV` is `development`, so without this the deployment runs a
+  development-mode validator. Blast radius is bounded to log noise — only
+  `NODE_ENV=test` throws; otherwise `respond()` logs
+  `[route-def] Response schema violation: ...` and still sends the response — but
+  there is no reason to carry it. Do **not** set `VALIDATE_HTTP_RESPONSES`; that
+  is the same gate reached the other way.
 - `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
 - `HEARTBEAT_CHECKLIST_DISABLE` left unset (the var exists but `Boolean(env)`
   parsing means any non-empty value, even `"false"`, disables the checklist).
