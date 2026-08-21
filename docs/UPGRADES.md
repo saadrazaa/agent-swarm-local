@@ -131,6 +131,14 @@ Run this on the host, as the operator. Do not delegate the restart steps to an
 agent running *inside* this stack — restarting the stack kills that agent
 mid-flight.
 
+**Soak gate — before step 1.** Confirm the target release has been published long
+enough to satisfy the 48–72h soak in **Policy** above:
+`gh api repos/desplega-ai/agent-swarm/releases/tags/vX.Y.Z -q .published_at`.
+Record that timestamp and the earliest-merge time in the upgrade PR body, so the
+gate is visible without leaving the PR. Gating on the newest release in the range
+covers every earlier one. Adopting sooner is allowed only as an explicit, reasoned
+exception written into the PR body — never by omission.
+
 1. Update full image references in `versions.env` on the upgrade branch.
 2. Validate: `docker compose --env-file versions.env --env-file .env config -q`,
    confirm arm64 manifests, confirm no `latest`. See
