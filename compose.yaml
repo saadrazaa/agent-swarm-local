@@ -176,6 +176,7 @@ services:
       # tool surface this stack actually used. Gates MCP tool registration
       # only; SLACK_DISABLE etc. still control integrations.
       CAPABILITIES: "core,task-pool,scripts,config,mcp,profiles,scheduling,memory,workflows,pages,metrics,kv,slack,tracker,skills,repo,services"
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
     ports:
       - "127.0.0.1:3013:3013"
     volumes:
