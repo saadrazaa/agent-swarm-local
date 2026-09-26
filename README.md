@@ -2,7 +2,7 @@
 
 A trimmed, single-operator, loopback-only Docker Compose deployment of
 [desplega-ai/agent-swarm](https://github.com/desplega-ai/agent-swarm), pinned at
-**v1.129.0** with **agent-fs 0.12.2**. Persistent agent memory is provided by
+**v1.155.1** with **agent-fs 0.13.9**. Persistent agent memory is provided by
 agent-fs backed by a local MinIO. Everything runs on your host; nothing is
 exposed beyond `127.0.0.1`.
 
@@ -179,9 +179,9 @@ Be clear-eyed about what this stack does before you run it:
 
 | Component | Reference |
 |---|---|
-| API | `ghcr.io/desplega-ai/agent-swarm:1.129.0` |
-| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:1.129.0` |
-| agent-fs | `ghcr.io/desplega-ai/agent-fs:0.12.2` |
+| API | `ghcr.io/desplega-ai/agent-swarm:1.155.1` |
+| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:1.155.1` |
+| agent-fs | `ghcr.io/desplega-ai/agent-fs:0.13.9` |
 | MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` |
 | MinIO client | `minio/mc:RELEASE.2025-08-13T08-35-41Z` |
 | Backup helper | `alpine:3.20` |
@@ -236,6 +236,15 @@ orphans that agent's memory.
   workers (`einstein`, `socrates`) run 2 each. Do not use
   `docker compose up --scale`; every agent needs a unique stable `AGENT_ID` and
   its own volume.
+- **The pinned MinIO images may no longer be re-pullable.** MinIO removed its
+  Docker Hub repositories (`hub.docker.com/v2/repositories/minio/{minio,mc}` →
+  HTTP 404, checked 2026-09-26) and `quay.io/minio/minio` does not grant `pull`
+  to an anonymous token. Upstream repointed its example at quay.io in v1.150.0;
+  this repo has **not** followed, because re-pinning to a registry we cannot
+  anonymously verify would trade a working local cache for an unverifiable one.
+  Already-pulled local images still satisfy the pinned digests, so a running
+  stack is fine — but do not `docker system prune` or `docker image rm` them.
+  Export them first: `docker save -o ~/minio-images.tar minio/minio@sha256:… minio/mc@sha256:…`.
 - Only arm64 is verified — see [Platform support](#platform-support).
 
 ## Layout

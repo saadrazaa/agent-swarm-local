@@ -157,6 +157,22 @@ services:
       LINEAR_DISABLE: "true"
       JIRA_DISABLE: "true"
       ANONYMIZED_TELEMETRY: "false"
+      # >=1.151.0 flipped STEERING_ENABLED's unset default from false to true
+      # (src/utils/steering-enabled.ts: parseEnvFlag(env.STEERING_ENABLED, true)).
+      # This stack's documented intent is steering OFF, which used to be achieved
+      # by leaving the var unset — that now means ON. Set explicitly so the
+      # behaviour survives the pin bump. To adopt upstream's new default, put
+      # STEERING_ENABLED=true in .env (it is wired through every agent too).
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
+      # >=1.149.1 seeds zero-config automations and auto-ENABLES the ones marked
+      # autoEnableCandidate (daily-status-report, daily-swarm-update-check), which
+      # then fire daily against the model budget. Upstream's shipped default is
+      # true (src/be/seed/automation-toggle.ts). Defaulted to false here so a pin
+      # bump never silently creates recurring spend on an unattended stack; the
+      # seeder only resolves `enabled` on create, so already-existing schedules
+      # keep their current state either way. Set SEED_AUTOMATIONS_ENABLED=true in
+      # .env (before the API's first boot on a new image) to adopt upstream.
+      SEED_AUTOMATIONS_ENABLED: ${SEED_AUTOMATIONS_ENABLED:-false}
       # Memory embeddings (semantic memory-search). The API embeds agent_memory
       # rows with OpenAI text-embedding-3-small, reading EMBEDDING_API_KEY then
       # OPENAI_API_KEY from its own environment. Without a key the provider
@@ -211,6 +227,9 @@ services:
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "3"
+      # Steering is disabled on the API and on every agent (see the api service
+      # for why an explicit value is now required). One .env flip moves all of them.
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${LEAD_AGENT_ID}
@@ -249,6 +268,7 @@ services:
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${CLAUDE_WORKER_AGENT_ID}
@@ -284,6 +304,10 @@ services:
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
+      # Inert-until-now note: since v1.125.0 the worker image ships a root-owned
+      # /etc/codex/requirements.toml registering Codex lifecycle hooks, which this
+      # flag gates. Keeping it false keeps rocky's behaviour unchanged.
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${CODEX_WORKER_AGENT_ID}
@@ -319,6 +343,7 @@ services:
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "2"
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${RESEARCHER_AGENT_ID}
@@ -354,6 +379,7 @@ services:
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${IGRIS_AGENT_ID}
@@ -389,6 +415,7 @@ services:
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${BERU_AGENT_ID}
@@ -424,6 +451,7 @@ services:
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       MAX_CONCURRENT_TASKS: "2"  # official/researcher advertises maxTasks:2 — cap explicitly
+      STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${SOCRATES_AGENT_ID}
