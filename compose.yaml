@@ -423,9 +423,8 @@ services:
       AGENT_NAME: BERU
       AGENT_ROLE: worker
       TEMPLATE_ID: official/coder
-      HARNESS_PROVIDER: claude
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      HARNESS_PROVIDER: codex
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
@@ -459,9 +458,8 @@ services:
       AGENT_NAME: SOCRATES
       AGENT_ROLE: worker
       TEMPLATE_ID: official/researcher
-      HARNESS_PROVIDER: claude
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      HARNESS_PROVIDER: codex
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - swarm_logs:/logs
       - swarm_shared:/workspace/shared
