@@ -9,10 +9,10 @@
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
   without a separate compatibility test. This cuts both ways: leaving `AGENT_FS_IMAGE`
   *behind* the declared version is also an independent pin. When the declared version
-  moves, it moves in the same PR as the API/worker pins. v1.155.1 declares agent-fs
-  **0.13.9** (compose example `ghcr.io/desplega-ai/agent-fs:0.13.9` and
-  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.13.9`); v1.129.0 declared 0.12.2 and
-  v1.125.0 declared 0.9.0.
+  moves, it moves in the same PR as the API/worker pins. v2.5.3 declares agent-fs
+  **0.18.5** (compose example `ghcr.io/desplega-ai/agent-fs:0.18.5` and
+  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.18.5`); v1.155.1 declared 0.13.9,
+  v1.129.0 declared 0.12.2 and v1.125.0 declared 0.9.0.
 - Upgrade MinIO separately when possible.
 - Pin the worker to the **plain** versioned tag, never the `-slim` sibling
   published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
@@ -40,7 +40,14 @@
   never prune them), and scope `docker compose pull` to the services that
   actually changed so a dead MinIO reference cannot fail the step. Revisit when
   either registry serves these repos anonymously again, or move to an
-  authenticated pull-through mirror.
+  authenticated pull-through mirror. Upstream v1.158.0 (PR #1654) moved its
+  example again, to a digest-pinned community build `pgsty/minio` for both
+  `minio` and `minio-init`, which is anonymously pullable and arm64. Adopting it
+  is a MinIO server version jump to a different, unsigned build, so it is left
+  for a separate MinIO upgrade rather than riding along with an agent-swarm bump.
+  Upstream's minio-init also runs `mc version enable local/agentfs` since
+  v1.162.0 (#1728); not adopted yet. Without bucket versioning agent-fs reports
+  versioning off and refuses content diff/revert; nothing else breaks.
 - Since v1.129.0 `PAGE_SESSION_SECRET` no longer falls back to `API_KEY`. Left
   unset, the API generates 32 random bytes and persists them at
   `<dirname(DATABASE_PATH)>/.page-session-secret` — here `/app/data/.page-session-secret`,
@@ -79,7 +86,7 @@ upstream example silently reverts them:
 - MinIO host port via `MINIO_HOST_PORT` (default 9002, not 9000).
 - Loopback-only published ports; MinIO console 9001 unpublished.
 - No `platform: linux/amd64`, no `pull_policy: always` (we pin arm64 by digest).
-  Unchanged at v1.155.1: upstream still carries 14 `platform:` and 15
+  Unchanged at v2.5.3: upstream still carries 14 `platform:` and 15
   `pull_policy:` entries.
 - No `pids_limit: 1024` on the agent services. Upstream added it as a containment
   default; not adopted here, since this stack's containment story is the network
@@ -91,7 +98,7 @@ upstream example silently reverts them:
   (all coder) = `3` each; `einstein` and `socrates` (both researcher) = `2`
   each (aggregate worker concurrency 16). Update this line whenever a value
   changes. The variable appears **nowhere** in the upstream example (0
-  occurrences at v1.155.1), so a diff cannot merge these away — but it also
+  occurrences at v2.5.3), so a diff cannot merge these away — but it also
   offers no upstream guidance when template defaults move.
 - `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
 - Explicit `RBAC_ENABLED: "false"` on the `api` service. This used to agree with
@@ -107,8 +114,12 @@ upstream example silently reverts them:
   daily against the model budget on first boot. Defaulted off here so a pin bump
   never silently creates recurring spend on an unattended stack. The seeder only
   resolves `enabled` on create, so pre-existing schedules keep their state.
-- `HEARTBEAT_CHECKLIST_DISABLE` left unset (the var exists but `Boolean(env)`
-  parsing means any non-empty value, even `"false"`, disables the checklist).
+- `HEARTBEAT_CHECKLIST_DISABLE` left unset, so the checklist runs. Since v1.159.0
+  (#1711) it is parsed as a real env flag (`"false"`/`"0"` keep the checklist
+  on), so setting it is now safe; the old `Boolean(env)` trap is gone. Since
+  v2.2.0 (#2226) the heartbeat Jev gate auto-enables in shadow mode when
+  `HEARTBEAT_CHECKLIST_GATE_SCRIPT` is unset and a global `TYPESAFE_API_KEY`,
+  `OPENROUTER_API_KEY` or Cloudflare token is in `swarm_config`; left unset here.
 - `STEERING_ENABLED` set **explicitly to `false`** on the `api` service and on all
   seven agents, via `${STEERING_ENABLED:-false}` so one `.env` line moves them
   together. It was introduced in v1.123.0 with an upstream default of off, and
@@ -124,8 +135,11 @@ upstream example silently reverts them:
   so `rocky` gets the file and no behaviour change.
 - Explicit `CAPABILITIES` on the `api` service (since v1.121.1, which introduced
   capability-gated MCP tool registration) — set to the v1.119.1-equivalent tool
-  surface plus `services`, since the new upstream default drops `services` and
-  would otherwise silently disable register-service/PM2 discovery. Keep `kv` in
+  surface. It used to add `services` to keep register-service/PM2 discovery;
+  v2.0.0 (#2147) removed PM2, the service registry and the `services`
+  capability, so `services` was dropped from the list (a retired name would be
+  filtered, not fatal). Agents can no longer rely on `pm2` in the worker image
+  or on `register-service`/`list-services`. Keep `kv` in
   that list: from v1.125.0 any MCP result over 10 KB is spilled to a 24h
   per-agent KV namespace and retrieved via `kv-get`, so dropping `kv` would make
   oversized tool results unreadable. Keep `skills` in it too: from v1.129.0 the
