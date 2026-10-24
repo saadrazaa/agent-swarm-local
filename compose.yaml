@@ -183,15 +183,14 @@ services:
       # OpenAI codepaths stay untouched. After first enabling this, backfill
       # existing rows once: POST /api/memory/re-embed (see docs/OPERATIONS.md).
       EMBEDDING_API_KEY: ${OPENAI_API_KEY:-}
-      # NOTE: HEARTBEAT_CHECKLIST_DISABLE exists but is left unset deliberately —
-      # it's parsed as Boolean(env), so any non-empty value (even "false") disables
-      # the checklist.
-      # >=1.121.0 gates MCP tool groups by CAPABILITIES with a new default that
-      # drops `services` (and leaves swarm-x/agentmail/kapso/prompt-templates
-      # off). Explicit list = new default + services, preserving the v1.119.1
-      # tool surface this stack actually used. Gates MCP tool registration
-      # only; SLACK_DISABLE etc. still control integrations.
-      CAPABILITIES: "core,task-pool,scripts,config,mcp,profiles,scheduling,memory,workflows,pages,metrics,kv,slack,tracker,skills,repo,services"
+      # NOTE: HEARTBEAT_CHECKLIST_DISABLE is left unset, so the checklist runs.
+      # Since 1.159.0 it is parsed as a real flag ("false"/"0" keep it on).
+      # >=1.121.0 gates MCP tool groups by CAPABILITIES (swarm-x/agentmail/
+      # kapso/prompt-templates stay off). Explicit list preserves the tool
+      # surface this stack uses. `services` was dropped at 2.0.0, which removed
+      # PM2 and the service registry. Gates MCP tool registration only;
+      # SLACK_DISABLE etc. still control integrations.
+      CAPABILITIES: "core,task-pool,scripts,config,mcp,profiles,scheduling,memory,workflows,pages,metrics,kv,slack,tracker,skills,repo"
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
     ports:
       - "127.0.0.1:3013:3013"
