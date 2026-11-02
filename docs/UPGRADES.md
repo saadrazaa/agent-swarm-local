@@ -114,6 +114,14 @@ upstream example silently reverts them:
   daily against the model budget on first boot. Defaulted off here so a pin bump
   never silently creates recurring spend on an unattended stack. The seeder only
   resolves `enabled` on create, so pre-existing schedules keep their state.
+- Explicit `TASK_AUTO_TITLE_ENABLED` (default `false` via
+  `${TASK_AUTO_TITLE_ENABLED:-false}`) on the `api` service. Since v2.7.7 the
+  unset default is **true** (`src/be/task-auto-title-listener.ts`): the API asks
+  a model for a title on every new task whenever it can see any model
+  credential. Defaulted off here so a pin bump never silently adds per-task
+  spend. The flag is re-read from the API env on every task event, and global
+  `swarm_config` rows are injected into that env, so a row with this key can
+  change it at runtime; keep none.
 - `HEARTBEAT_CHECKLIST_DISABLE` left unset, so the checklist runs. Since v1.159.0
   (#1711) it is parsed as a real env flag (`"false"`/`"0"` keep the checklist
   on), so setting it is now safe; the old `Boolean(env)` trap is gone. Since

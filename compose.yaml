@@ -173,6 +173,12 @@ services:
       # keep their current state either way. Set SEED_AUTOMATIONS_ENABLED=true in
       # .env (before the API's first boot on a new image) to adopt upstream.
       SEED_AUTOMATIONS_ENABLED: ${SEED_AUTOMATIONS_ENABLED:-false}
+      # >=2.7.7 generates a model-written title for every new task, by default
+      # on (src/be/task-auto-title-listener.ts: parseEnvFlag(env.TASK_AUTO_TITLE_ENABLED, true)),
+      # using whichever model credential the API can see. Defaulted to false here
+      # so a pin bump never silently adds per-task spend. Set
+      # TASK_AUTO_TITLE_ENABLED=true in .env to adopt upstream.
+      TASK_AUTO_TITLE_ENABLED: ${TASK_AUTO_TITLE_ENABLED:-false}
       # Memory embeddings (semantic memory-search). The API embeds agent_memory
       # rows with OpenAI text-embedding-3-small, reading EMBEDDING_API_KEY then
       # OPENAI_API_KEY from its own environment. Without a key the provider
