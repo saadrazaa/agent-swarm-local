@@ -9,10 +9,10 @@
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
   without a separate compatibility test. This cuts both ways: leaving `AGENT_FS_IMAGE`
   *behind* the declared version is also an independent pin. When the declared version
-  moves, it moves in the same PR as the API/worker pins. v2.5.3 declares agent-fs
-  **0.18.5** (compose example `ghcr.io/desplega-ai/agent-fs:0.18.5` and
-  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.18.5`); v1.155.1 declared 0.13.9,
-  v1.129.0 declared 0.12.2 and v1.125.0 declared 0.9.0.
+  moves, it moves in the same PR as the API/worker pins. v2.7.8 declares agent-fs
+  **0.18.14** (compose example `ghcr.io/desplega-ai/agent-fs:0.18.14` and
+  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.18.14`); v2.5.3 declared 0.18.5,
+  v1.155.1 declared 0.13.9, v1.129.0 declared 0.12.2 and v1.125.0 declared 0.9.0.
 - Upgrade MinIO separately when possible.
 - Pin the worker to the **plain** versioned tag, never the `-slim` sibling
   published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
@@ -86,7 +86,7 @@ upstream example silently reverts them:
 - MinIO host port via `MINIO_HOST_PORT` (default 9002, not 9000).
 - Loopback-only published ports; MinIO console 9001 unpublished.
 - No `platform: linux/amd64`, no `pull_policy: always` (we pin arm64 by digest).
-  Unchanged at v2.5.3: upstream still carries 14 `platform:` and 15
+  Unchanged at v2.7.8: upstream still carries 14 `platform:` and 15
   `pull_policy:` entries.
 - No `pids_limit: 1024` on the agent services. Upstream added it as a containment
   default; not adopted here, since this stack's containment story is the network
@@ -98,7 +98,7 @@ upstream example silently reverts them:
   (all coder) = `3` each; `einstein` and `socrates` (both researcher) = `2`
   each (aggregate worker concurrency 16). Update this line whenever a value
   changes. The variable appears **nowhere** in the upstream example (0
-  occurrences at v2.5.3), so a diff cannot merge these away — but it also
+  occurrences at v2.7.8), so a diff cannot merge these away — but it also
   offers no upstream guidance when template defaults move.
 - `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
 - Explicit `RBAC_ENABLED: "false"` on the `api` service. This used to agree with
@@ -114,6 +114,14 @@ upstream example silently reverts them:
   daily against the model budget on first boot. Defaulted off here so a pin bump
   never silently creates recurring spend on an unattended stack. The seeder only
   resolves `enabled` on create, so pre-existing schedules keep their state.
+- Explicit `TASK_AUTO_TITLE_ENABLED` (default `false` via
+  `${TASK_AUTO_TITLE_ENABLED:-false}`) on the `api` service. Since v2.7.7 the
+  unset default is **true** (`src/be/task-auto-title-listener.ts`): the API asks
+  a model for a title on every new task whenever it can see any model
+  credential. Defaulted off here so a pin bump never silently adds per-task
+  spend. The flag is re-read from the API env on every task event, and global
+  `swarm_config` rows are injected into that env, so a row with this key can
+  change it at runtime; keep none.
 - `HEARTBEAT_CHECKLIST_DISABLE` left unset, so the checklist runs. Since v1.159.0
   (#1711) it is parsed as a real env flag (`"false"`/`"0"` keep the checklist
   on), so setting it is now safe; the old `Boolean(env)` trap is gone. Since
