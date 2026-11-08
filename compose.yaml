@@ -152,6 +152,12 @@ services:
       # links (e.g. HITL approval URLs). Default = hosted UI; override in .env with
       # APP_URL=http://127.0.0.1:5274 if you run apps/ui locally instead.
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
+      # >=2.9.0 (#2734): with AGENT_FS_LINK_TARGET unset, file links default to
+      # the dashboard (APP_URL/file/~/...) whenever APP_URL is set and
+      # COMB_ENABLED is not "false". Pinned to "live" here and on every agent so
+      # file links keep using AGENT_FS_LIVE_URL, as before the bump. Set
+      # AGENT_FS_LINK_TARGET=dashboard in .env to adopt upstream's new default.
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       SLACK_DISABLE: "true"
       GITHUB_DISABLE: "true"  # disables INBOUND webhooks only; worker GITHUB_TOKEN still works
       LINEAR_DISABLE: "true"
@@ -226,10 +232,15 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      # Keeps file links on AGENT_FS_LIVE_URL; see the api service for why
+      # >=2.9.0 needs this pinned explicitly.
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       MAX_CONCURRENT_TASKS: "3"
       # Steering is disabled on the API and on every agent (see the api service
       # for why an explicit value is now required). One .env flip moves all of them.
       STEERING_ENABLED: ${STEERING_ENABLED:-false}
+      # Inert since 2.7.9 (#2648 removed YOLO; it is no longer read). Kept as a
+      # harmless record of intent on all seven agents.
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
       AGENT_ID: ${LEAD_AGENT_ID}
@@ -267,6 +278,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
       STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
@@ -303,6 +315,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
       # Inert-until-now note: since v1.125.0 the worker image ships a root-owned
       # /etc/codex/requirements.toml registering Codex lifecycle hooks, which this
@@ -342,6 +355,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       MAX_CONCURRENT_TASKS: "2"
       STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
@@ -378,6 +392,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
       STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
@@ -414,6 +429,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       MAX_CONCURRENT_TASKS: "3"  # official/coder advertises maxTasks:3 — cap explicitly
       STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
@@ -449,6 +465,7 @@ services:
       APP_URL: ${APP_URL:-https://app.agent-swarm.dev}
       SWARM_URL: ${SWARM_URL:-app.agent-swarm.dev}
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
+      AGENT_FS_LINK_TARGET: ${AGENT_FS_LINK_TARGET:-live}
       MAX_CONCURRENT_TASKS: "2"  # official/researcher advertises maxTasks:2 — cap explicitly
       STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"

@@ -2,7 +2,7 @@
 
 A trimmed, single-operator, loopback-only Docker Compose deployment of
 [desplega-ai/agent-swarm](https://github.com/desplega-ai/agent-swarm), pinned at
-**v2.5.3** with **agent-fs 0.18.5**. Persistent agent memory is provided by
+**v2.9.0** with **agent-fs 0.18.23**. Persistent agent memory is provided by
 agent-fs backed by a local MinIO. Everything runs on your host; nothing is
 exposed beyond `127.0.0.1`.
 
@@ -156,8 +156,9 @@ Be clear-eyed about what this stack does before you run it:
 
 - **The agents execute code and reach the network.** They run with a coding
   harness inside their containers and make outbound calls to LLM providers and
-  Git hosts. `YOLO=false` is set, but the containment story here is the network
-  boundary and the container, not a sandbox you should bet secrets on.
+  Git hosts. `YOLO=false` is still set but inert since v2.7.9; the containment
+  story here is the network boundary and the container, not a sandbox you
+  should bet secrets on.
 - **Loopback-only is the perimeter.** Published ports (3013, 7433,
   `MINIO_HOST_PORT`) bind `127.0.0.1`; MinIO's console (9001) and the agent
   containers publish nothing. There is no authentication story beyond the single
@@ -179,9 +180,9 @@ Be clear-eyed about what this stack does before you run it:
 
 | Component | Reference |
 |---|---|
-| API | `ghcr.io/desplega-ai/agent-swarm:2.5.3` |
-| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:2.5.3` |
-| agent-fs | `ghcr.io/desplega-ai/agent-fs:0.18.5` |
+| API | `ghcr.io/desplega-ai/agent-swarm:2.9.0` |
+| Worker | `ghcr.io/desplega-ai/agent-swarm-worker:2.9.0` |
+| agent-fs | `ghcr.io/desplega-ai/agent-fs:0.18.23` |
 | MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` |
 | MinIO client | `minio/mc:RELEASE.2025-08-13T08-35-41Z` |
 | Backup helper | `alpine:3.20` |
