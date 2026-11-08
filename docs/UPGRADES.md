@@ -9,10 +9,10 @@
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
   without a separate compatibility test. This cuts both ways: leaving `AGENT_FS_IMAGE`
   *behind* the declared version is also an independent pin. When the declared version
-  moves, it moves in the same PR as the API/worker pins. v2.5.3 declares agent-fs
-  **0.18.5** (compose example `ghcr.io/desplega-ai/agent-fs:0.18.5` and
-  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.18.5`); v1.155.1 declared 0.13.9,
-  v1.129.0 declared 0.12.2 and v1.125.0 declared 0.9.0.
+  moves, it moves in the same PR as the API/worker pins. v2.9.0 declares agent-fs
+  **0.18.23** (compose example `ghcr.io/desplega-ai/agent-fs:0.18.23` and
+  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.18.23`); v2.5.3 declared 0.18.5,
+  v1.155.1 declared 0.13.9, v1.129.0 declared 0.12.2 and v1.125.0 declared 0.9.0.
 - Upgrade MinIO separately when possible.
 - Pin the worker to the **plain** versioned tag, never the `-slim` sibling
   published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
@@ -86,7 +86,7 @@ upstream example silently reverts them:
 - MinIO host port via `MINIO_HOST_PORT` (default 9002, not 9000).
 - Loopback-only published ports; MinIO console 9001 unpublished.
 - No `platform: linux/amd64`, no `pull_policy: always` (we pin arm64 by digest).
-  Unchanged at v2.5.3: upstream still carries 14 `platform:` and 15
+  Unchanged at v2.9.0: upstream still carries 14 `platform:` and 15
   `pull_policy:` entries.
 - No `pids_limit: 1024` on the agent services. Upstream added it as a containment
   default; not adopted here, since this stack's containment story is the network
@@ -98,9 +98,13 @@ upstream example silently reverts them:
   (all coder) = `3` each; `einstein` and `socrates` (both researcher) = `2`
   each (aggregate worker concurrency 16). Update this line whenever a value
   changes. The variable appears **nowhere** in the upstream example (0
-  occurrences at v2.5.3), so a diff cannot merge these away — but it also
+  occurrences at v2.9.0), so a diff cannot merge these away — but it also
   offers no upstream guidance when template defaults move.
-- `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
+- `YOLO: "false"` on all seven agents; inbound Slack/GitHub/Linear/Jira
+  disabled. **`YOLO` is inert since v2.7.9** (#2648 removed it; `YOLO`,
+  `WORKER_YOLO` and `LEAD_YOLO` are no longer read, and upstream dropped
+  `YOLO=true` from its example). The line is kept as a harmless record of
+  intent; deleting it changes nothing.
 - Explicit `RBAC_ENABLED: "false"` on the `api` service. This used to agree with
   upstream's default; since v1.151.0 (PR #1536, `src/rbac/admission.ts`) the
   unset default is **true** and the upstream example writes
@@ -163,9 +167,17 @@ upstream example silently reverts them:
 - Share-link env on **every** agent service: `APP_URL`, `SWARM_URL`,
   `AGENT_FS_LIVE_URL` (defaults: hosted dashboard `https://app.agent-swarm.dev`,
   bare host `app.agent-swarm.dev`, hosted viewer `https://live.agent-fs.dev`).
-  The upstream example sets only `SWARM_URL` on agents; without these, agents
-  only see `MCP_BASE_URL=http://api:3013` and emit container-internal share
-  links.
+  Partly **absorbed upstream**: since v2.9.0 the example sets `SWARM_URL` and
+  `APP_URL=${APP_URL:-}` on agents, but still not `AGENT_FS_LIVE_URL`. Without
+  these, agents only see `MCP_BASE_URL=http://api:3013` and emit
+  container-internal share links.
+- `AGENT_FS_LINK_TARGET` set to `live` (via `${AGENT_FS_LINK_TARGET:-live}`) on
+  the `api` service and all seven agents. v2.9.0 (#2734,
+  `src/utils/constants.ts` `readAgentFsLinkTarget`) changed the unset default
+  to `dashboard` whenever `APP_URL` is set and `COMB_ENABLED` is not `false`.
+  This stack always sets `APP_URL`, so without the pin every file link would
+  silently move from `AGENT_FS_LIVE_URL` to `APP_URL/file/~/...`. Set
+  `AGENT_FS_LINK_TARGET=dashboard` in `.env` to adopt upstream's default.
 
 ## Execution
 
