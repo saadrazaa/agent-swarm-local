@@ -9,17 +9,19 @@
   compatibility baseline. Do not jump agent-fs independently (e.g. 0.9.0 → newer)
   without a separate compatibility test. This cuts both ways: leaving `AGENT_FS_IMAGE`
   *behind* the declared version is also an independent pin. When the declared version
-  moves, it moves in the same PR as the API/worker pins. v2.5.3 declares agent-fs
-  **0.18.5** (compose example `ghcr.io/desplega-ai/agent-fs:0.18.5` and
-  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.18.5`); v1.155.1 declared 0.13.9,
-  v1.129.0 declared 0.12.2 and v1.125.0 declared 0.9.0.
+  moves, it moves in the same PR as the API/worker pins. v2.13.1 declares agent-fs
+  **0.18.27** (compose example `ghcr.io/desplega-ai/agent-fs:0.18.27` and
+  `Dockerfile.worker`'s `ARG AGENT_FS_VERSION=0.18.27`); v2.5.3 declared 0.18.5,
+  v1.155.1 declared 0.13.9, v1.129.0 declared 0.12.2 and v1.125.0 declared 0.9.0.
 - Upgrade MinIO separately when possible.
 - Pin the worker to the **plain** versioned tag, never the `-slim` sibling
   published alongside it since v1.123.1. Slim is upstream's CI/E2E image and
   drops `glab`, the build toolchain, Playwright/`qa-use`, the bundled Postgres
   and Redis servers, `sentry-cli`, `localtunnel`, `claude-bridge`, the
   context-mode harness hook plugins, and `vim`/`tmux`/`htop`/`tree`. The plain
-  tag is `worker-full`, which is what this stack expects.
+  tag is `worker-full`, which is what this stack expects. Since v2.8.3 (#2812)
+  context-mode is gone from the plain tag too: agents have no `ctx_*` MCP tools
+  or context-mode hooks, and `CONTEXT_MODE_DISABLED` is ignored.
 - Never auto-pull or deploy `latest`. `scripts/check-updates.sh` is read-only.
 - Since v1.126.0 a worker/lead container **exits fatally** if `${MCP_BASE_URL}/health`
   is unreachable within `WORKER_API_READY_TIMEOUT_SECONDS` (default `90`). It is a
@@ -86,7 +88,7 @@ upstream example silently reverts them:
 - MinIO host port via `MINIO_HOST_PORT` (default 9002, not 9000).
 - Loopback-only published ports; MinIO console 9001 unpublished.
 - No `platform: linux/amd64`, no `pull_policy: always` (we pin arm64 by digest).
-  Unchanged at v2.5.3: upstream still carries 14 `platform:` and 15
+  Unchanged at v2.13.1: upstream still carries 14 `platform:` and 15
   `pull_policy:` entries.
 - No `pids_limit: 1024` on the agent services. Upstream added it as a containment
   default; not adopted here, since this stack's containment story is the network
@@ -98,9 +100,12 @@ upstream example silently reverts them:
   (all coder) = `3` each; `einstein` and `socrates` (both researcher) = `2`
   each (aggregate worker concurrency 16). Update this line whenever a value
   changes. The variable appears **nowhere** in the upstream example (0
-  occurrences at v2.5.3), so a diff cannot merge these away — but it also
+  occurrences at v2.13.1), so a diff cannot merge these away — but it also
   offers no upstream guidance when template defaults move.
-- `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled.
+- `YOLO=false`; inbound Slack/GitHub/Linear/Jira disabled. Since v2.7.9 (#2648)
+  YOLO mode is removed and `YOLO`, `WORKER_YOLO` and `LEAD_YOLO` are ignored, so
+  the `YOLO: "false"` lines are inert; upstream's example dropped `YOLO=true`.
+  Kept as a record of intent; safe to delete.
 - Explicit `RBAC_ENABLED: "false"` on the `api` service. This used to agree with
   upstream's default; since v1.151.0 (PR #1536, `src/rbac/admission.ts`) the
   unset default is **true** and the upstream example writes
@@ -163,9 +168,18 @@ upstream example silently reverts them:
 - Share-link env on **every** agent service: `APP_URL`, `SWARM_URL`,
   `AGENT_FS_LIVE_URL` (defaults: hosted dashboard `https://app.agent-swarm.dev`,
   bare host `app.agent-swarm.dev`, hosted viewer `https://live.agent-fs.dev`).
-  The upstream example sets only `SWARM_URL` on agents; without these, agents
-  only see `MCP_BASE_URL=http://api:3013` and emit container-internal share
-  links.
+  The upstream example sets only `SWARM_URL` on agents (plus, since v2.13.1,
+  `APP_URL=${APP_URL:-}` with an empty default; keep the local hosted defaults);
+  without these, agents only see `MCP_BASE_URL=http://api:3013` and emit
+  container-internal share links.
+- `MEMORY_DEMOTION_FLOOR` left unset. Its code default moved from `1.0` to `0.5`
+  in v2.10.0 (#2922), so memories rated wrong now rank lower; set `1.0` on `api`
+  to keep the old ranking. `TASK_AUTO_TITLE_ENABLED` (v2.7.7, default `true`, one
+  cheap-model call per new task) and `WORKTREE_REAPER_MODE` (v2.13.1, default
+  `dry-run`, logs only) are also left at upstream defaults. The API proxies
+  agent-fs at `/agentfs`, `/share` and `/site` since v2.7.1 because
+  `AGENT_FS_API_URL` is set; the API port is loopback-only, so exposure is
+  unchanged.
 
 ## Execution
 
