@@ -487,7 +487,7 @@ services:
       AGENT_FS_LIVE_URL: ${AGENT_FS_LIVE_URL:-https://live.agent-fs.dev}
       # Deliberately 1, below official/researcher's maxTasks:2: graham owns one
       # stateful workload, and a second concurrent task would only contend with it.
-      MAX_CONCURRENT_TASKS: "1"
+      MAX_CONCURRENT_TASKS: "2"
       STEERING_ENABLED: ${STEERING_ENABLED:-false}
       YOLO: "false"
       ANONYMIZED_TELEMETRY: "false"
