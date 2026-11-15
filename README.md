@@ -48,13 +48,14 @@ API-coordinated agents (outbound LLM + Git only), each with its own volume:
   igris     coder       Claude   official/coder
   beru      coder       Claude   official/coder
   socrates  researcher  Claude   official/researcher
+  graham    researcher  Claude   official/researcher
                                         \--> shared workspace (swarm_shared)
 ```
 
 Who each agent is, and where its personality actually lives:
 [docs/AGENTS.md](docs/AGENTS.md).
 
-Ten long-running containers (`minio`, `agent-fs`, `api`, and the seven agents)
+Eleven long-running containers (`minio`, `agent-fs`, `api`, and the eight agents)
 plus two one-shots (`minio-init`, `agent-fs-viewer-init`). Only the control plane
 and persistence run locally — LLM inference and Git are outbound calls.
 
@@ -81,7 +82,7 @@ nobody has tried; treat it as unsupported rather than broken.
   `encryption_key`, and for backups. Losing `encryption_key` makes every secret
   stored in the API database permanently unrecoverable.
 - **Provider credentials:** an Anthropic API key *or* a Claude Code OAuth token
-  (for the six Claude agents), and an OpenAI API key (for the Codex worker and
+  (for the seven Claude agents), and an OpenAI API key (for the Codex worker and
   for the API's memory embeddings — without it, semantic memory search silently
   degrades to keyword matching).
 
@@ -233,7 +234,8 @@ orphans that agent's memory.
 - Agent concurrency is capped explicitly in `compose.yaml`, matching each
   agent's own template default: the lead (`tars`) runs up to 3 tasks; coder
   workers (`chase`, `rocky`, `igris`, `beru`) run 3 each; researcher
-  workers (`einstein`, `socrates`) run 2 each. Do not use
+  workers (`einstein`, `socrates`) run 2 each; the researcher `graham` is
+  capped at 1, below its template default. Do not use
   `docker compose up --scale`; every agent needs a unique stable `AGENT_ID` and
   its own volume.
 - **The pinned MinIO images may no longer be re-pullable.** MinIO removed its

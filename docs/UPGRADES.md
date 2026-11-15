@@ -98,7 +98,8 @@ upstream example silently reverts them:
   values (each set to its own template's default rather than left to the
   fallback): lead `tars` = `3`; workers `chase`, `rocky`, `igris`, `beru`
   (all coder) = `3` each; `einstein` and `socrates` (both researcher) = `2`
-  each (aggregate worker concurrency 16). Update this line whenever a value
+  each; `graham` (researcher) = `1`, deliberately below its template default
+  (aggregate worker concurrency 17). Update this line whenever a value
   changes. The variable appears **nowhere** in the upstream example (0
   occurrences at v2.13.1), so a diff cannot merge these away — but it also
   offers no upstream guidance when template defaults move.
@@ -126,7 +127,7 @@ upstream example silently reverts them:
   `HEARTBEAT_CHECKLIST_GATE_SCRIPT` is unset and a global `TYPESAFE_API_KEY`,
   `OPENROUTER_API_KEY` or Cloudflare token is in `swarm_config`; left unset here.
 - `STEERING_ENABLED` set **explicitly to `false`** on the `api` service and on all
-  seven agents, via `${STEERING_ENABLED:-false}` so one `.env` line moves them
+  eight agents, via `${STEERING_ENABLED:-false}` so one `.env` line moves them
   together. It was introduced in v1.123.0 with an upstream default of off, and
   this stack expressed "steering disabled" by leaving it unset. **v1.151.0 (PR
   #1536, `src/utils/steering-enabled.ts` → `parseEnvFlag(env.STEERING_ENABLED,
@@ -195,7 +196,7 @@ mid-flight.
 3. Pull the new images **without** starting them.
 4. Let tasks finish or pause them gracefully.
 5. Take and verify a full offline pre-upgrade backup (`scripts/backup.sh`).
-6. Stop all seven agents (`make pause`), then API, agent-fs, MinIO.
+6. Stop all eight agents (`make pause`), then API, agent-fs, MinIO.
 7. Start MinIO/minio-init + agent-fs; verify storage health.
 8. Start **API alone** — numbered SQL migrations run here (one transaction each;
    there is no down-migration framework, so a successful new API boot may change the

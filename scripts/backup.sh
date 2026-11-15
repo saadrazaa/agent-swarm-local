@@ -32,6 +32,7 @@ VOLUMES=(
   swarm_igris
   swarm_beru
   swarm_socrates
+  swarm_graham
 )
 
 log() { echo "[backup] $*"; }
@@ -62,7 +63,7 @@ restart_stack() {
   # and the upstream entrypoint's "prepend to existing start-up.sh" branch leaves
   # that file root-owned/unreadable on a reused filesystem, crash-looping the
   # worker. A fresh container takes the working "create new" path (mode 755).
-  "${DC[@]}" up -d --force-recreate tars chase rocky einstein igris beru socrates
+  "${DC[@]}" up -d --force-recreate tars chase rocky einstein igris beru socrates graham
 }
 # Best-effort restart even if a later step fails, so we never leave the stack down.
 trap 'rm -f "$LOCK"; restart_stack || true' EXIT
@@ -70,7 +71,7 @@ trap 'rm -f "$LOCK"; restart_stack || true' EXIT
 # 3. Pause agents first (API stays up briefly to record the pause), then 4. stop
 # API -> agent-fs -> minio so both databases flush cleanly.
 log "stopping agents"
-"${DC[@]}" stop tars chase rocky einstein igris beru socrates
+"${DC[@]}" stop tars chase rocky einstein igris beru socrates graham
 log "stopping api"
 "${DC[@]}" stop api
 log "stopping agent-fs"

@@ -1,6 +1,6 @@
 # Agent Roster
 
-The seven agents this stack runs, why each one exists, and where its personality
+The eight agents this stack runs, why each one exists, and where its personality
 actually lives.
 
 ## How agent identity works (read this before editing personas)
@@ -53,6 +53,7 @@ rewrite that drops the lead's routing rules, a coder's PR-check discipline, or
 | `igris` | *Solo Leveling* (Blood-Red Commander) | coder | `official/coder` | Claude | 3 |
 | `beru` | *Solo Leveling* (Ant King) | coder | `official/coder` | Claude | 3 |
 | `socrates` | Socrates | researcher (adversarial) | `official/researcher` | Claude | 2 |
+| `graham` | Benjamin Graham | researcher (investing) | `official/researcher` | Claude | 1 |
 
 ### TARS — lead / orchestrator
 
@@ -99,6 +100,14 @@ with questions, cross-examines a claim until it meets its own contradiction, and
 professes ignorance to expose weak reasoning. Writes up what remains **unknown**
 rather than what is known: "what are we assuming, and does it survive
 questioning?"
+
+### GRAHAM — researcher (investing)
+
+An investing-focused researcher with an investor's discipline: margin of safety
+first, every conclusion justified in writing. Capped at one task at a time,
+below its template default, because it owns one stateful workload. Its full
+persona is applied to the database after first boot (see the identity notes
+above) and is not kept here.
 
 ## Open question — no agent holds the review lane
 
