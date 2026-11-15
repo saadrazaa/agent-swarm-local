@@ -29,6 +29,7 @@ VOLUMES=(
   swarm_igris
   swarm_beru
   swarm_socrates
+  swarm_graham
 )
 
 log() { echo "[restore] $*"; }
@@ -68,7 +69,7 @@ DC=(docker compose --env-file versions.env --env-file .env -p "$PROJECT")
 EMERG="$REPO_DIR/backups/emergency-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$EMERG"
 log "emergency snapshot -> $EMERG"
-"${DC[@]}" stop tars chase rocky einstein igris beru socrates api agent-fs minio minio-init || true
+"${DC[@]}" stop tars chase rocky einstein igris beru socrates graham api agent-fs minio minio-init || true
 for vol in "${VOLUMES[@]}"; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     docker run --rm -v "$vol":/src:ro -v "$EMERG":/backup "$HELPER_IMAGE" \
@@ -102,7 +103,7 @@ log "starting stack"
 "${DC[@]}" up -d minio-init
 "${DC[@]}" up -d agent-fs
 "${DC[@]}" up -d api
-"${DC[@]}" up -d tars chase rocky einstein igris beru socrates
+"${DC[@]}" up -d tars chase rocky einstein igris beru socrates graham
 
 # 8. Best-effort SQLite integrity check on any restored SQLite DBs.
 log "SQLite integrity check (best-effort)"

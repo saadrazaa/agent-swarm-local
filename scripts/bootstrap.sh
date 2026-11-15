@@ -57,6 +57,10 @@ if [[ -f "$ENV_FILE" ]]; then
     printf 'SOCRATES_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"
     echo "  backfilled SOCRATES_AGENT_ID (identity for the socrates researcher)."
   fi
+  if ! grep -q '^GRAHAM_AGENT_ID=' "$ENV_FILE"; then
+    printf 'GRAHAM_AGENT_ID=%s\n' "$(uuidgen)" >> "$ENV_FILE"
+    echo "  backfilled GRAHAM_AGENT_ID (identity for the graham researcher)."
+  fi
   echo "Edit .env directly to set or update provider credentials."
   exit 0
 fi
@@ -71,6 +75,7 @@ researcher_id="$(uuidgen)"
 igris_id="$(uuidgen)"
 beru_id="$(uuidgen)"
 socrates_id="$(uuidgen)"
+graham_id="$(uuidgen)"
 viewer_key="af_$(openssl rand -hex 32)"
 
 ( umask 177; cat > "$ENV_FILE" <<EOF
@@ -85,6 +90,7 @@ RESEARCHER_AGENT_ID=${researcher_id}
 IGRIS_AGENT_ID=${igris_id}
 BERU_AGENT_ID=${beru_id}
 SOCRATES_AGENT_ID=${socrates_id}
+GRAHAM_AGENT_ID=${graham_id}
 AGENT_FS_VIEWER_KEY=${viewer_key}
 AGENT_FS_VIEWER_EMAIL=viewer@local
 ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
